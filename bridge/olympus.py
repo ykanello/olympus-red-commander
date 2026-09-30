@@ -216,6 +216,7 @@ class OlympusClient:
         self.session = requests.Session()
         self.session.headers["Authorization"] = f"Basic {token}"
         self.timeout = timeout
+        self.last_session_hash: str | None = None
 
     @classmethod
     def from_olympus_json(cls, path: str | Path, role: str = "red") -> "OlympusClient":
@@ -244,15 +245,33 @@ class OlympusClient:
         return decode_units(self._get("units").content)
 
     def get_airbases(self) -> list[dict]:
-        data = self._get("airbases").json().get("airbases", {})
+        answer = self._get("airbases").json()
+        self.last_session_hash = answer.get("sessionHash")
+        data = answer.get("airbases", {})
         items = data.values() if isinstance(data, dict) else data
         return [a for a in items if a]
+
+    def session_hash(self) -> str | None:
+        """Random ID Olympus picks each time a mission starts: a change means the mission was restarted."""
+        self.get_airbases()
+        return self.last_session_hash
 
     def get_mission(self) -> dict:
         return self._get("mission").json().get("mission", {})
 
     def command_status(self, command_hash: str) -> dict:
         return self._get("commands", commandHash=command_hash).json()
+
+    def execute_file(self, path: str | Path) -> str | None:
+        """Run a Lua file inside the mission (MIST and Olympus loaded). The file must be on the DCS machine.
+
+        A script can hand data back by setting Olympus.executionResults["<key>"] = "<string>";
+        Olympus publishes that table about once a second and command_result("<key>") reads it.
+        """
+        return self.send("executeFile", {"filePath": str(Path(path).resolve()).replace("\\", "/")})
+
+    def command_result(self, key: str):
+        return self.command_status(key).get("commandResult")
 
     # ---- writes ----
     def send(self, name: str, body: dict) -> str | None:

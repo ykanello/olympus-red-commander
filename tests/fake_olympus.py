@@ -5,11 +5,14 @@ from __future__ import annotations
 import base64
 import itertools
 import json
+import re
 import struct
 import threading
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
+
+from bridge import geo
 
 PASSWORD = "0" * 64  # stands in for the sha256 hash in olympus.json
 
@@ -70,6 +73,10 @@ class FakeOlympus:
         self._ids = itertools.count(1000)
         self._hashes = itertools.count(1)
         self.lock = threading.Lock()
+        self.session_hash = "SESSION1"
+        self.execution_results: dict[str, object] = {}
+        # Terrain for executeFile probes: (lat, lng) -> (wet points, slope, obstacles). None: executeFile unsupported.
+        self.terrain = lambda lat, lng: (0, 0.0, 0)
 
     def add(self, **kw) -> FakeUnit:
         u = FakeUnit(id=next(self._ids), **kw)
@@ -95,7 +102,23 @@ class FakeOlympus:
                     self._spawn(body, "GroundUnit")
                 elif name == "spawnAircrafts":
                     self._spawn(body, "Aircraft")
+                elif name == "executeFile" and self.terrain is not None:
+                    self._run_terrain_probe(body["filePath"])
             return {"commandHash": f"h{next(self._hashes)}"}
+
+    def _run_terrain_probe(self, path: str) -> None:
+        """Stands in for DCS running the generated Lua: same inputs, same result format."""
+        lua = open(path, encoding="utf-8").read()
+        key = re.search(r'local key = "([^"]+)"', lua).group(1)
+        sites = re.findall(r"\{(\d+), (-?[\d.]+), (-?[\d.]+), (\d+)\}", lua.split("local offsets")[0])
+        offsets = re.findall(r"\{(\d+), (\d+)\}", lua.split("local offsets")[1].split("\n")[0])
+        rows = []
+        for sid, lat, lng, _r in sites:
+            for d, b in offsets:
+                plat, plng = geo.project(float(lat), float(lng), float(b), float(d))
+                wet, slope, obstacles = self.terrain(plat, plng)
+                rows.append(f"{sid},{plat:.6f},{plng:.6f},{wet},{slope:.4f},{obstacles}")
+        self.execution_results[key] = ";".join(rows)
 
     def units_payload(self) -> bytes:
         with self.lock:
@@ -131,9 +154,10 @@ class FakeOlympus:
                 if what == "units":
                     self._reply(fake.units_payload(), "application/octet-stream")
                 elif what == "airbases":
-                    self._reply(json.dumps({"airbases": fake.airbases}).encode())
+                    self._reply(json.dumps({"airbases": fake.airbases, "sessionHash": fake.session_hash}).encode())
                 elif what == "commands":
-                    self._reply(json.dumps({"commandExecuted": True, "commandResult": 1}).encode())
+                    key = parse_qs(url.query).get("commandHash", [""])[0]
+                    self._reply(json.dumps({"commandExecuted": True, "commandResult": fake.execution_results.get(key, 1)}).encode())
                 else:
                     self._reply(b"{}")
 

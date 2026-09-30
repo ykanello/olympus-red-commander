@@ -6,7 +6,7 @@ import pytest
 
 from bridge import geo
 from bridge.catalog import Catalog
-from bridge.commander import Commander
+from bridge.commander import Commander, MissionRestarted
 from bridge.olympus import OlympusClient, decode_units
 from bridge.plan import Plan, validate
 from bridge.planner import Planner, PlannerConfig, StaticPlanner, build_brief
@@ -238,3 +238,44 @@ def test_wrong_password_is_reported(olympus):
     bad = OlympusClient(client.base_url, "wrong")
     with pytest.raises(Exception, match="401"):
         bad.get_units()
+
+
+# ---------- terrain, state and restarts ----------
+
+def test_sites_on_water_are_moved_to_dry_ground(scenario, inventory_catalog, olympus, tmp_path):
+    fake, client = olympus
+    plan, _ = StaticPlanner(good_plan()).plan(scenario, inventory_catalog, RED_BASES)
+    planned = (plan.ground_groups[0].lat, plan.ground_groups[0].lng)  # SA-11
+    fake.terrain = lambda lat, lng: (5, 0.0, 0) if geo.distance_m(*planned, lat, lng) < 300 else (0, 0.02, 0)
+    cmd = Commander(client, scenario, inventory_catalog, RED_BASES, run_id="T", event_log=tmp_path / "e.jsonl", work_dir=tmp_path)
+    cmd.execute(plan)
+    sa11 = next(u for u in fake.units.values() if u.group_name == "RED-T-SA11-West")
+    assert 400 <= geo.distance_m(*planned, sa11.lat, sa11.lng) <= 600  # nearest dry ring is 500 m out
+    moved = [json.loads(l) for l in (tmp_path / "e.jsonl").read_text().splitlines() if '"site_moved"' in l]
+    assert [m["name"] for m in moved] == ["SA11-West"]
+
+
+def test_state_lets_a_restarted_bridge_take_back_its_units(scenario, inventory_catalog, olympus, tmp_path):
+    fake, client = olympus
+    plan, _ = StaticPlanner(good_plan()).plan(scenario, inventory_catalog, RED_BASES)
+    first = Commander(client, scenario, inventory_catalog, RED_BASES, run_id="T", session_hash="SESSION1",
+                      state_path=tmp_path / "state.json", work_dir=tmp_path)
+    first.execute(plan)
+    state = json.loads((tmp_path / "state.json").read_text())
+    assert state["session_hash"] == "SESSION1" and len(state["groups"]) == 6 and state["alerts"][0]["remaining"] == 2
+
+    second = Commander(client, scenario, inventory_catalog, RED_BASES, session_hash="SESSION1")
+    second.restore(state)
+    assert second.groups == first.groups and second.alerts == first.alerts
+
+
+def test_watch_loop_survives_olympus_dropping_out_and_spots_a_mission_restart(scenario, inventory_catalog, olympus):
+    fake, client = olympus
+    scenario.rules.poll_seconds = 0.05
+    offline = Commander(OlympusClient("http://127.0.0.1:9/olympus", PASSWORD), scenario, inventory_catalog, RED_BASES, session_hash="SESSION1")
+    offline.run(stop_after_s=0.3)  # connection refused every tick: logs and keeps waiting, no exception
+
+    cmd = Commander(client, scenario, inventory_catalog, RED_BASES, session_hash="SESSION1")
+    fake.session_hash = "SESSION2"
+    with pytest.raises(MissionRestarted):
+        cmd.run(stop_after_s=2)

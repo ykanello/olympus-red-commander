@@ -4,11 +4,15 @@
   python -m bridge plan    scenarios/defend-kutaisi.yaml   # ask Claude for a plan, print it, spawn nothing
   python -m bridge run     scenarios/defend-kutaisi.yaml   # plan, spawn, then watch and scramble
   python -m bridge run     scenarios/defend-kutaisi.yaml --plan logs/plan-....json   # reuse a saved plan
+
+run waits for the mission, keeps going when Olympus drops out, takes back its units if restarted in the same
+mission, and spawns the plan again when the mission restarts.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
 import dataclasses
 import json
 import logging
@@ -21,7 +25,7 @@ import requests
 import yaml
 
 from .catalog import Catalog
-from .commander import Commander
+from .commander import Commander, MissionRestarted
 from .olympus import OlympusClient
 from .plan import Plan, validate
 from .planner import Planner, PlannerConfig
@@ -91,6 +95,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("scenario", type=Path)
     parser.add_argument("--config", type=Path, default=Path("config.yaml"))
     parser.add_argument("--plan", type=Path, help="Use a saved plan JSON instead of asking Claude")
+    parser.add_argument("--replan", action="store_true", help="Ask Claude for a fresh plan each time the mission restarts")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -105,43 +110,97 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     client = OlympusClient.from_olympus_json(olympus_json)
-    try:
-        bases = red_airbases(client, scenario.coalition)
-    except requests.ConnectionError:
-        sys.exit(f"Cannot reach Olympus at {client.base_url}. Olympus only answers while a DCS mission is running "
-                 "with the Olympus mod enabled: start the mission (unpaused), then run this again.")
-    if not bases:
-        logging.warning("Olympus reports no %s airbases in this mission; fighters cannot be used.", scenario.coalition)
     log_dir = Path(cfg.get("log_dir", "logs"))
     log_dir.mkdir(exist_ok=True)
-    stamp = time.strftime("%Y%m%d-%H%M%S")
+    add_file_log(log_dir)
 
+    if args.command == "plan":
+        bases = connect(client, scenario, wait=False)
+        plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
+        print_plan(plan, catalog, warnings)
+        return
+
+    # run: keep going across mission restarts until Ctrl+C.
+    state_path = log_dir / f"state-{scenario.name}.json"
+    plan = None
+    try:
+        while True:
+            bases = connect(client, scenario, wait=True)
+            session = client.last_session_hash
+            stamp = time.strftime("%Y%m%d-%H%M%S")
+            commander = Commander(client, scenario, catalog, bases, event_log=log_dir / f"events-{scenario.name}-{stamp}.jsonl",
+                                  session_hash=session, work_dir=log_dir, check_terrain=cfg.get("check_terrain", True))
+            state = load_state(state_path)
+            if state and session and state.get("session_hash") == session:
+                commander.restore(state)
+                commander.state_path = state_path
+                logging.info("Same mission as before (%d groups): taking back control instead of spawning again.", len(commander.groups))
+            else:
+                if plan is None or args.replan:
+                    plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
+                    print_plan(plan, catalog, warnings)
+                else:
+                    logging.info("New mission: spawning the same plan again.")
+                commander.state_path = state_path
+                commander.execute(copy.deepcopy(plan))
+            logging.info("Watching every %.0fs; Ctrl+C to stop.", scenario.rules.poll_seconds)
+            try:
+                commander.run()
+            except MissionRestarted:
+                logging.info("The mission was restarted.")
+    except KeyboardInterrupt:
+        logging.info("Stopped. Units stay in the mission; running again in the same mission takes them back.")
+
+
+def add_file_log(log_dir: Path) -> None:
+    handler = logging.FileHandler(log_dir / f"bridge-{time.strftime('%Y%m%d')}.log", encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logging.getLogger().addHandler(handler)
+
+
+def connect(client: OlympusClient, scenario: Scenario, wait: bool) -> dict[str, tuple[float, float]]:
+    """Read Red airbases. With wait, keep trying until a mission with Olympus is running."""
+    waiting = False
+    while True:
+        try:
+            bases = red_airbases(client, scenario.coalition)
+            break
+        except requests.RequestException:
+            if not wait:
+                sys.exit(f"Cannot reach Olympus at {client.base_url}. Olympus only answers while a DCS mission is running "
+                         "with the Olympus mod enabled: start the mission (unpaused), then run this again.")
+            if not waiting:
+                logging.info("Waiting for a DCS mission with Olympus at %s ...", client.base_url)
+                waiting = True
+            time.sleep(10)
+    if not bases:
+        logging.warning("Olympus reports no %s airbases in this mission; fighters cannot be used.", scenario.coalition)
+    return bases
+
+
+def load_state(path: Path) -> dict | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def make_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path) -> tuple[Plan, list[str]]:
     if args.plan:
         plan = Plan.from_json(json.loads(args.plan.read_text(encoding="utf-8")))
         errors, warnings = validate(plan, scenario, catalog, bases)
         if errors:
             sys.exit("Saved plan is invalid: " + "; ".join(errors))
-    else:
-        if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-            sys.exit("ANTHROPIC_API_KEY is not set in this terminal. In PowerShell: $env:ANTHROPIC_API_KEY = \"sk-ant-...\" "
-                     "(or setx it, then open a new window). Or reuse a saved plan with --plan.")
-        planner = Planner(PlannerConfig(**cfg.get("planner", {})))
-        plan, warnings = planner.plan(scenario, catalog, bases)
-        plan_path = log_dir / f"plan-{scenario.name}-{stamp}.json"
-        plan_path.write_text(json.dumps(dataclasses.asdict(plan), indent=1), encoding="utf-8")
-        logging.info("Plan saved to %s", plan_path)
-
-    print_plan(plan, catalog, warnings)
-    if args.command == "plan":
-        return
-
-    commander = Commander(client, scenario, catalog, bases, event_log=log_dir / f"events-{scenario.name}-{stamp}.jsonl")
-    commander.execute(plan)
-    logging.info("Plan executed. Watching every %.0fs; Ctrl+C to stop.", scenario.rules.poll_seconds)
-    try:
-        commander.run()
-    except KeyboardInterrupt:
-        logging.info("Stopped.")
+        return plan, warnings
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        sys.exit("ANTHROPIC_API_KEY is not set in this terminal. In PowerShell: $env:ANTHROPIC_API_KEY = \"sk-ant-...\" "
+                 "(or setx it, then open a new window). Or reuse a saved plan with --plan.")
+    planner = Planner(PlannerConfig(**cfg.get("planner", {})))
+    plan, warnings = planner.plan(scenario, catalog, bases)
+    plan_path = log_dir / f"plan-{scenario.name}-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    plan_path.write_text(json.dumps(dataclasses.asdict(plan), indent=1), encoding="utf-8")
+    logging.info("Plan saved to %s", plan_path)
+    return plan, warnings
 
 
 if __name__ == "__main__":

@@ -18,3 +18,6 @@ planner:
   repair_rounds: 1
 
 log_dir: logs
+
+# Move ground sites off water, towns and steep slopes before spawning (uses DCS land data via Olympus).
+check_terrain: true

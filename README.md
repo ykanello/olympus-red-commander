@@ -29,6 +29,27 @@ python -m bridge run     scenarios/defend-kutaisi.yaml --plan logs/plan-....json
 Each run writes `logs/plan-*.json` (the plan) and `logs/events-*.jsonl` (spawns, scrambles, SAMs going active).
 The plan is also drawn as F10 map markers.
 
+## Running it unattended
+
+`start-red-commander.bat` runs `python -m bridge run` for the scenario named at its top. Double-click it, or
+start it at logon so it is always ready:
+
+```
+schtasks /create /tn "Red Commander" /sc onlogon /tr "\"C:\Users\Hawk\olympus-red-commander\start-red-commander.bat\""
+```
+
+`run` then:
+
+- waits until a DCS mission with Olympus is running, instead of stopping with an error;
+- asks Claude for a plan once (or uses `--plan`), then spawns it;
+- keeps watching if Olympus drops out for a while, and carries on when it is back;
+- spawns the same plan again when the mission is restarted (`--replan` asks Claude for a new plan each time);
+- if the bridge itself is restarted during the same mission, takes back control of the units it already
+  spawned (from `logs/state-<scenario>.json`) instead of spawning a second set. Delete that file to force a fresh spawn.
+
+Everything the console shows also goes to `logs/bridge-<date>.log`. For a task started at logon, set the API key with
+`setx` (not `$env:`), so it is there for every new window.
+
 ## Scenario files
 
 - `scenarios/defend-kutaisi.yaml`: an exact inventory. Claude decides only where things go and what the fighters do.
@@ -44,7 +65,10 @@ Unit types use Olympus database names (`python -m bridge catalog ...` lists them
    (type, class, price, engagement and detection ranges). It never gets Blue positions.
 2. Claude returns a plan as structured JSON. The bridge checks types, counts, inventory, budget,
    distances, airbases and loadouts, and sends any errors back once for repair.
-3. Ground groups spawn at their bearing and distance from the objective. SAMs are weapons free.
+3. Terrain check: DCS reports, for a ring of spots around each planned site, whether the ground is dry,
+   flat and free of buildings and trees. Each site moves to the nearest good spot, at most 800 m away
+   (`site_moved` in the events log). Turn this off with `check_terrain: false` in config.yaml.
+   Ground groups then spawn there. SAMs are weapons free.
    Long and medium SAMs start dark (alarm state green) if `keep_sams_dark_until_km` is set. Point-defence SAMs
    (engagement range 15 km or less, such as the Tor) and EWRs radiate from the start.
 4. Sweep flights spawn, climb to `sweep_altitude_ft` and fly their route. Intercept flights stay on alert.
@@ -68,4 +92,5 @@ formats. No DCS and no Anthropic API key needed.
 ## Not yet verified
 
 - Aircraft air-spawn altitude units (the bridge sends metres; only ramp starts were tested).
-- Placement can put a site on water or in a valley; there is no terrain check yet.
+- The terrain check (Lua run through Olympus `executeFile`) has only run against a stand-in for DCS so far.
+  If Olympus gives no answer, sites stay where Claude put them and the log says so.

@@ -8,6 +8,7 @@ Red only acts on enemy aircraft that at least one Red unit currently detects.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 import math
@@ -15,7 +16,9 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import geo
+import requests
+
+from . import geo, terrain
 from .catalog import Catalog
 from .olympus import OlympusClient, Unit
 from .plan import FighterTasking, Plan
@@ -50,6 +53,10 @@ class AlertSlot:
     remaining: int
 
 
+class MissionRestarted(Exception):
+    """Olympus came back with a new session: the mission was restarted and our units are gone."""
+
+
 @dataclass
 class Commander:
     client: OlympusClient
@@ -62,6 +69,10 @@ class Commander:
     alerts: list[AlertSlot] = field(default_factory=list)
     scramble_counter: int = 0
     marker_counter: int = 9000
+    session_hash: str | None = None
+    state_path: Path | None = None  # saved after every change so a restarted bridge can take over its units
+    work_dir: Path = Path("logs")  # where generated Lua files go (must be on the DCS machine)
+    check_terrain: bool = True
 
     # ---------- helpers ----------
     def _event(self, kind: str, **data) -> None:
@@ -69,6 +80,53 @@ class Commander:
         if self.event_log:
             with self.event_log.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps({"t": time.time(), "event": kind, **data}) + "\n")
+        self.save_state()
+
+    # ---------- state, so a restarted bridge resumes instead of spawning twice ----------
+    def save_state(self) -> None:
+        if not self.state_path:
+            return
+        state = {
+            "session_hash": self.session_hash, "run_id": self.run_id, "scramble_counter": self.scramble_counter,
+            "marker_counter": self.marker_counter,
+            "groups": [dataclasses.asdict(g) for g in self.groups.values()],
+            "alerts": [dataclasses.asdict(a) for a in self.alerts],
+        }
+        tmp = self.state_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(state, indent=1), encoding="utf-8")
+        tmp.replace(self.state_path)
+
+    def restore(self, state: dict) -> None:
+        self.run_id = state["run_id"]
+        self.scramble_counter = state["scramble_counter"]
+        self.marker_counter = state["marker_counter"]
+        self.groups = {g["name"]: SpawnedGroup(**g) for g in state["groups"]}
+        self.alerts = [AlertSlot(**a) for a in state["alerts"]]
+
+    # ---------- terrain ----------
+    def _footprint_m(self, g) -> float:
+        if self.catalog[g.type].is_template:
+            return 150.0
+        return UNIT_SPACING_M + 20.0 if g.count > 1 else 30.0
+
+    def _fix_sites(self, plan: Plan) -> None:
+        """Move each ground site to dry, flat, open ground near where Claude put it."""
+        requests_ = [terrain.SiteRequest(i, g.lat, g.lng, self._footprint_m(g)) for i, g in enumerate(plan.ground_groups)]
+        samples = terrain.probe(self.client, requests_, self.work_dir)
+        if samples is None:
+            return
+        for i, g in enumerate(plan.ground_groups):
+            if i not in samples:
+                continue
+            best = terrain.choose(samples[i])
+            moved_m = geo.distance_m(g.lat, g.lng, best.lat, best.lng)
+            if not best.good:
+                log.warning("No clear ground found near %s; using the least bad spot (water points %d, slope %.0f%%, obstacles %d).",
+                            g.name, best.wet_points, best.slope * 100, best.obstacles)
+            if moved_m > 1:
+                self._event("site_moved", name=g.name, moved_m=round(moved_m), good=best.good,
+                            planned=samples[i][0].__dict__, chosen=best.__dict__)
+                g.lat, g.lng = best.lat, best.lng
 
     def _group_name(self, name: str) -> str:
         return f"RED-{self.run_id}-{name}"
@@ -145,6 +203,8 @@ class Commander:
         self._event("plan", summary=plan.summary, cost=plan.cost(self.catalog))
         o = self.scenario.objective
         self._marker(o.lat, o.lng, f"Red objective: {o.name}. {plan.summary}")
+        if self.check_terrain and plan.ground_groups:
+            self._fix_sites(plan)
 
         for g in plan.ground_groups:
             item = self.catalog[g.type]
@@ -275,11 +335,30 @@ class Commander:
         self._event("scramble", group=group_name, type=slot.type, count=count, airbase=slot.airbase, target=target.id,
                     left_on_alert=slot.remaining)
 
-    def run(self, stop_after_s: float | None = None) -> None:
+    def check_session(self) -> None:
+        current = self.client.session_hash()
+        if self.session_hash and current and current != self.session_hash:
+            raise MissionRestarted(current)
+
+    def run(self, stop_after_s: float | None = None, session_check_every: int = 6) -> None:
+        """Watch loop. Survives Olympus dropping out; raises MissionRestarted when the mission was restarted."""
         start = time.monotonic()
+        ticks, offline_since = 0, None
         while stop_after_s is None or time.monotonic() - start < stop_after_s:
             try:
+                if offline_since is not None or ticks % session_check_every == 0:
+                    self.check_session()
+                if offline_since is not None:
+                    log.info("Olympus is back after %.0fs, same mission; carrying on.", time.monotonic() - offline_since)
+                    offline_since = None
                 self.tick()
+            except MissionRestarted:
+                raise
+            except requests.RequestException as exc:
+                if offline_since is None:
+                    offline_since = time.monotonic()
+                    log.warning("Lost contact with Olympus (%s). Waiting for it to come back...", type(exc).__name__)
             except Exception:
                 log.exception("Watch loop tick failed; retrying next tick")
+            ticks += 1
             time.sleep(self.scenario.rules.poll_seconds)

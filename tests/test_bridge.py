@@ -182,7 +182,8 @@ def test_execute_then_scramble_and_wake_sams(scenario, inventory_catalog, olympu
     alarm = {body["ID"]: body["alarmState"] for name, body in fake.commands if name == "setAlarmState"}
     sa11 = next(u for u in fake.units.values() if u.group_name == "RED-T-SA11-West")
     ewr = next(u for u in fake.units.values() if u.group_name == "RED-T-EWR")
-    assert alarm[sa11.id] == 1 and alarm[ewr.id] == 2  # SA-11 dark (green), EWR on (red)
+    tor = next(u for u in fake.units.values() if u.group_name == "RED-T-Tor-1")
+    assert alarm[sa11.id] == 1 and alarm[ewr.id] == 2 and alarm[tor.id] == 2  # SA-11 dark; EWR and Tor (point defence) on
     assert any(name == "setPath" and len(body["path"]) == 2 for name, body in fake.commands)
     assert sum(1 for u in fake.units.values() if u.group_name == "RED-T-AAA") == 4
 

@@ -45,7 +45,8 @@ Unit types use Olympus database names (`python -m bridge catalog ...` lists them
 2. Claude returns a plan as structured JSON. The bridge checks types, counts, inventory, budget,
    distances, airbases and loadouts, and sends any errors back once for repair.
 3. Ground groups spawn at their bearing and distance from the objective. SAMs are weapons free.
-   Long and medium SAMs start dark (alarm state green) if `keep_sams_dark_until_km` is set; EWRs radiate.
+   Long and medium SAMs start dark (alarm state green) if `keep_sams_dark_until_km` is set. Point-defence SAMs
+   (engagement range 15 km or less, such as the Tor) and EWRs radiate from the start.
 4. Sweep flights spawn, climb to `sweep_altitude_ft` and fly their route. Intercept flights stay on alert.
 5. Every `poll_seconds`: enemy aircraft that any Red unit detects are the only threats considered.
    A dark SAM goes active when one comes within `keep_sams_dark_until_km` of it. A threat inside

@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 FT = 0.3048
 AIR_CATEGORIES = ("Aircraft", "Helicopter")
 DARK_CLASSES = {"sam_long", "sam_medium"}  # radar SAMs that emission control applies to
+POINT_DEFENCE_MAX_RANGE_M = 15_000  # SAMs reaching no further than this (Tor) stay on, to shoot down ARMs
 UNIT_SPACING_M = 80
 
 
@@ -159,7 +160,8 @@ class Commander:
             group_name = self._spawn_and_find(requested, g.lat, g.lng, lambda: self.client.spawn_ground(
                 requested, units, coalition=self.scenario.coalition, country=self.scenario.country,
                 spawn_points=0))
-            dark = item.cls in DARK_CLASSES and rules.keep_sams_dark_until_km is not None
+            dark = (item.cls in DARK_CLASSES and item.engagement_range_m > POINT_DEFENCE_MAX_RANGE_M
+                    and rules.keep_sams_dark_until_km is not None)
             spawned = SpawnedGroup(group_name, g.type, item.cls, g.lat, g.lng, dark=dark)
             self.groups[group_name] = spawned
             self._event("spawned", group=group_name, name=g.name, type=g.type, count=g.count, reason=g.reason)

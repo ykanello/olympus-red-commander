@@ -57,13 +57,14 @@ Unit types use Olympus database names (`python -m bridge catalog ...` lists them
 `python -m pytest` runs everything against a fake Olympus server that speaks the same HTTP and binary
 formats. No DCS and no Anthropic API key needed.
 
-## Not yet verified in DCS
+## Verified in DCS (2026-09-30, Kutaisi scenario, one Blue flight)
 
-These come from reading the Olympus v2.0.6 source, not from a live run:
-
-- A hot ramp start followed at once by `attackUnit`/`setPath`: whether the AI taxis and takes off.
-  If not, set `fighter_spawn: air` in the scenario.
-- That contact IDs in `/units` match unit IDs (the watch loop assumes so).
+- Ground groups and SAM batteries spawn where planned.
+- A hot ramp start followed by `setPath`/`attackUnit` gets the MiGs airborne.
+- Contact IDs in `/units` match unit IDs: the EWR's contact triggered the scramble and the SAM wake-ups.
 - Some Olympus builds ignore `groupName` and call groups `Olympus-<n>`. The bridge then finds each spawn as the new Red units near the spawn point.
-- Aircraft spawn altitude units (the bridge sends metres).
+
+## Not yet verified
+
+- Aircraft air-spawn altitude units (the bridge sends metres; only ramp starts were tested).
 - Placement can put a site on water or in a valley; there is no terrain check yet.

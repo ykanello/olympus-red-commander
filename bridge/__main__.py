@@ -17,6 +17,7 @@ import sys
 import time
 from pathlib import Path
 
+import requests
 import yaml
 
 from .catalog import Catalog
@@ -104,7 +105,13 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     client = OlympusClient.from_olympus_json(olympus_json)
-    bases = red_airbases(client, scenario.coalition)
+    try:
+        bases = red_airbases(client, scenario.coalition)
+    except requests.ConnectionError:
+        sys.exit(f"Cannot reach Olympus at {client.base_url}. Olympus only answers while a DCS mission is running "
+                 "with the Olympus mod enabled: start the mission (unpaused), then run this again.")
+    if not bases:
+        logging.warning("Olympus reports no %s airbases in this mission; fighters cannot be used.", scenario.coalition)
     log_dir = Path(cfg.get("log_dir", "logs"))
     log_dir.mkdir(exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")

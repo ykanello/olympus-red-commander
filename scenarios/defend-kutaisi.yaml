@@ -1,0 +1,27 @@
+# Option A: an exact inventory. Claude only decides where things go and what the fighters do.
+scenario: defend-kutaisi
+coalition: red
+country: ""                    # empty: Olympus picks a Red country
+
+objective:
+  name: Kutaisi airbase
+  location: { lat: 42.176, lng: 42.482 }
+  radius_m: 3000
+  threat_axis_deg: 240         # optional: where Blue is expected from
+
+inventory:
+  - { type: SA-11 SAM Battery, count: 1 }
+  - { type: Tor 9A331, count: 2 }
+  - { type: ZSU-23-4 Shilka, count: 4 }
+  - { type: 1L13 EWR, count: 1 }
+  - { type: MiG-29S, count: 4, base: Kutaisi }
+
+rules:
+  skill: High
+  keep_sams_dark_until_km: 40
+  max_distance_from_objective_km: 60
+  scramble_when_contact_within_km: 80
+  scramble_pair_size: 2
+  fighter_spawn: ramp          # ramp = hot start at the airbase, air = airborne above it
+  sweep_altitude_ft: 25000
+  poll_seconds: 5

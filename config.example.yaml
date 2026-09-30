@@ -1,0 +1,20 @@
+# Copy to config.yaml and edit. The bridge runs on the machine hosting the DCS mission.
+
+olympus:
+  # Your DCS *Saved Games* folder (not the game install folder, e.g. not B:/DCS World).
+  # The bridge reads Config/olympus.json (address, port, password hash) and
+  # Mods/Services/Olympus (unit databases and SAM templates) from here.
+  # Leave it commented out to auto-detect %USERPROFILE%/Saved Games/DCS or DCS.openbeta.
+  # saved_games_dcs: "C:/Users/YOU/Saved Games/DCS"
+  # Or point at each one directly:
+  # olympus_json: "C:/Users/YOU/Saved Games/DCS/Config/olympus.json"
+  # olympus_dir: "C:/Users/YOU/Saved Games/DCS/Mods/Services/Olympus"
+
+planner:
+  model: claude-opus-5-5
+  effort: high          # low | medium | high | xhigh | max
+  max_tokens: 16000
+  refusal_fallback: true
+  repair_rounds: 1
+
+log_dir: logs

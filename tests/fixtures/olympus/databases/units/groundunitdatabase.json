@@ -1,0 +1,4345 @@
+{
+ "1L13 EWR": {
+  "name": "1L13 EWR",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Box Spring 1L13 EWR",
+  "shortLabel": "Box spring",
+  "filename": "",
+  "type": "Radar (EWR)",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 300000,
+  "engagementRange": 0,
+  "description": "Box Spring 1L13 early warning radar built on the back of a trailer",
+  "abilities": "EWR, Radar, Fixed",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "markerFile": "groundunit-ewr"
+ },
+ "2S6 Tunguska": {
+  "name": "2S6 Tunguska",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-19 Tunguska",
+  "shortLabel": "19",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 18000,
+  "engagementRange": 8000,
+  "description": "SA-19 Tunguska 2K22 optical SAM. Tracked radar 30 mm AAA gun with optically guided (SACLOS) missiles. Range/alt max: 8km, 14,000 ft.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "muzzleVelocity": 1000,
+  "barrelHeight": 2,
+  "aimTime": 7,
+  "shotsToFire": 10,
+  "cost": null,
+  "tags": "Optical, Radar, CA",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "",
+  "canAAA": true
+ },
+ "55G6 EWR": {
+  "name": "55G6 EWR",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Tall Rack 55G6 EWR",
+  "shortLabel": "Tall Rack",
+  "filename": "",
+  "type": "Radar (EWR)",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 400000,
+  "engagementRange": 0,
+  "description": "Tall rack 55G6 early warning radar built on the back of a trailer",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "markerFile": "groundunit-ewr"
+ },
+ "Challenger2": {
+  "name": "Challenger2",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Challenger 2",
+  "shortLabel": "Challenger 2",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm rifled main gun (APFSDS and HESH), 7.62 mm coax machine gun.",
+  "abilities": "Combined arms",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 1.8,
+  "muzzleVelocity": 1050,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-tank",
+  "shotsBaseInterval": 6,
+  "targetingRange": 100,
+  "aimMethodRange": 3500,
+  "alertnessTimeConstant": 3,
+  "shotsBaseScatter": 5
+ },
+ "Gepard": {
+  "name": "Gepard",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Gepard",
+  "shortLabel": "Gepard",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   }
+  },
+  "barrelHeight": 2.35,
+  "muzzleVelocity": 1440,
+  "acquisitionRange": 8000,
+  "engagementRange": 2000,
+  "description": "Gepard. Tracked. 35mm radar detection and guided guns.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "aimTime": 7,
+  "shotsToFire": 5,
+  "cost": null,
+  "tags": "Radar, CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "shotsBaseScatter": 5,
+  "targetingRange": 300,
+  "aimMethodRange": 6000,
+  "shotsBaseInterval": 15,
+  "alertnessTimeConstant": 15
+ },
+ "Hawk SAM Battery": {
+  "name": "Hawk SAM Battery",
+  "coalition": "blue",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "Hawk SAM Battery",
+  "shortLabel": "Hk",
+  "range": "Medium",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 90000,
+  "engagementRange": 45000,
+  "description": "Hawk radar SAM site MIM-23. Range/alt max: 40 km, 60,000 ft. Min: 2km. HAWK stands for 'Homing all the way killer'.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "Hk"
+ },
+ "Igla manpad INS": {
+  "name": "Igla manpad INS",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-18 Igla",
+  "shortLabel": "18",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 5200,
+  "description": "SA-18 Igla 9K38 IR MANPADS. Range/alt max: 5 km, 12,000 ft.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "IR, CA, MANPADS",
+  "markerFile": "groundunit-sam"
+ },
+ "Leclerc": {
+  "name": "Leclerc",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Leclerc",
+  "shortLabel": "Leclerc",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore main gun (APFSDS and HEAT), 7.62 mm coax machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 500,
+  "barrelHeight": 1.6,
+  "shotsBaseInterval": 5,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "aimTime": 5,
+  "aimMethodRange": 300,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 3
+ },
+ "Leopard-2": {
+  "name": "Leopard-2",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Leopard-2",
+  "shortLabel": "Leopard-2",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "de_spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "den_winter": {
+    "name": "DEN_winter",
+    "countries": "All"
+   },
+   "de_autumn": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "de_winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "fin_autumn": {
+    "name": "FIN_autumn",
+    "countries": "All"
+   },
+   "fin_summer": {
+    "name": "FIN_summer",
+    "countries": "All"
+   },
+   "den_autumn": {
+    "name": "DEN_autumn",
+    "countries": "All"
+   },
+   "grc_summer": {
+    "name": "GRC_summer",
+    "countries": "All"
+   },
+   "can_summer": {
+    "name": "CAN_summer",
+    "countries": "All"
+   },
+   "can_winter": {
+    "name": "CAN_winter",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_spring",
+    "countries": "All"
+   },
+   "de_desert_autumn": {
+    "name": "autumn",
+    "countries": "All"
+   },
+   "de_desert_winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "de_desert_summer": {
+    "name": "DE_Desert_summer",
+    "countries": "All"
+   },
+   "de_summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "can_spring": {
+    "name": "CAN_spring",
+    "countries": "All"
+   },
+   "den_summer": {
+    "name": "DEN_summer",
+    "countries": "All"
+   },
+   "can_autumn": {
+    "name": "CAN_autumn",
+    "countries": "All"
+   },
+   "desert_winter": {
+    "name": "Desert_winter",
+    "countries": "All"
+   },
+   "den_spring": {
+    "name": "DEN_spring",
+    "countries": "All"
+   },
+   "desert_spring": {
+    "name": "Desert_spring",
+    "countries": "All"
+   },
+   "neth_summer": {
+    "name": "NETH_summer",
+    "countries": "All"
+   },
+   "spn_summer": {
+    "name": "SPN_Summer",
+    "countries": "All"
+   },
+   "de_desert_spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "desert_autumn": {
+    "name": "Desert_autumn",
+    "countries": "All"
+   },
+   "spn_winter": {
+    "name": "SPN_Winter",
+    "countries": "All"
+   },
+   "fin_spring": {
+    "name": "FIN_spring",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_autumn",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   },
+   "desert_summer": {
+    "name": "Desert_summer",
+    "countries": "All"
+   },
+   "neth_winter": {
+    "name": "NETH_winter",
+    "countries": "All"
+   },
+   "fin_winter": {
+    "name": "FIN_winter",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore main gun (APFSDS and HEAT), 7.62 mm machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 800,
+  "barrelHeight": 2.5,
+  "shotsBaseInterval": 6,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "aimTime": 7,
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 4,
+  "canAAA": true
+ },
+ "Leopard1A3": {
+  "name": "Leopard1A3",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Leopard1A3",
+  "shortLabel": "Leopard1A3",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 105 mm rifled main gun (APDS and HEAT), 7.62 mm coaxial machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 560,
+  "barrelHeight": 2.49,
+  "shotsBaseInterval": 6,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "tags": "CA",
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "M-1 Abrams": {
+  "name": "M-1 Abrams",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "M-1 Abrams",
+  "shortLabel": "M-1 Abrams",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Woodland_spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Woodland_winter",
+    "countries": "All"
+   },
+   "desert_winter": {
+    "name": "Desert_winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Woodland_autumn",
+    "countries": "All"
+   },
+   "desert_summer": {
+    "name": "Desert_summer",
+    "countries": "All"
+   },
+   "desert_spring": {
+    "name": "Desert_spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Woodland_summer",
+    "countries": "All"
+   },
+   "desert_autumn": {
+    "name": "Desert_autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore M256 main gun (APFSDS and HEAT), 7.62 mm machine gun.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "tags": "CA",
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 500,
+  "barrelHeight": 2.5,
+  "shotsBaseInterval": 7,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "aimMethodRange": 300,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 3,
+  "canAAA": false
+ },
+ "M-60": {
+  "name": "M-60",
+  "coalition": "blue",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "M-60",
+  "shortLabel": "M-60",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 4000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 105 mm rifled M68 main gun (APDS and HEAT), 7.62 mm machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 600,
+  "barrelHeight": 2.8,
+  "shotsBaseInterval": 12,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "tags": "CA",
+  "aimMethodRange": 2500,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "M1097 Avenger": {
+  "name": "M1097 Avenger",
+  "coalition": "blue",
+  "era": "Modern",
+  "category": "groundunit",
+  "label": "M1097 Avenger",
+  "shortLabel": "97",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 5200,
+  "engagementRange": 4500,
+  "description": "M1097 Avenger IR SAM. Range/alt max: 5 km, 15,000 ft. Contains 8 x Stinger missiles.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "tags": "IR, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "M48 Chaparral": {
+  "name": "M48 Chaparral",
+  "coalition": "blue",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "M48 Chaparral",
+  "shortLabel": "48",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "usa_autumn": {
+    "name": "USA_Autumn",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "isr_winter": {
+    "name": "ISR_Winter",
+    "countries": "All"
+   },
+   "isr_spring": {
+    "name": "ISR_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "isr_autumn": {
+    "name": "ISR_Autumn",
+    "countries": "All"
+   },
+   "usa_spring": {
+    "name": "USA_Spring",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "usa_summer": {
+    "name": "USA_Summer",
+    "countries": "All"
+   },
+   "usa_winter": {
+    "name": "USA_Winter",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "isr_summer": {
+    "name": "ISR_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 10000,
+  "engagementRange": 8500,
+  "description": "M48 Chaparral IR SAM. Range/alt max: 9 km, 13,000 ft.  4 x AIM 9 Sidewinder missiles.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "IR, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "M6 Linebacker": {
+  "name": "M6 Linebacker",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "M6 Linebacker",
+  "shortLabel": "M6",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 6000,
+  "engagementRange": 4000,
+  "description": "M6 Linebacker IR SAM. Range/alt max: 5 km, 15,000 ft. 4 x Stinger on M2 Bradley.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "IR, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "Patriot site": {
+  "name": "Patriot site",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Patriot SAM Battery",
+  "shortLabel": "Pt",
+  "range": "Long",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 160000,
+  "engagementRange": 98000,
+  "description": "Patriot radar SAM site. Range/alt max: 150 km, 105,000 ft. Min: 5km.    ",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "Pt"
+ },
+ "Roland ADS": {
+  "name": "Roland ADS",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Roland ADS",
+  "shortLabel": "RO",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 12000,
+  "engagementRange": 8000,
+  "description": "Roland ADS radar and optical SAM. Range/alt max: 11 km, 18,000 ft. Tracked vehicle.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar, Optical, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "SA-10 SAM Battery": {
+  "name": "SA-10 SAM Battery",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-10 SAM Battery",
+  "shortLabel": "10",
+  "range": "Long",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 300000,
+  "engagementRange": 52000,
+  "description": "SA-10 Grumble radar SAM site S-300. Range/alt max: 52 km, 100,000 ft.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "10"
+ },
+ "SA-11 SAM Battery": {
+  "name": "SA-11 SAM Battery",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-11 SAM Battery",
+  "shortLabel": "11",
+  "range": "Medium",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 98000,
+  "engagementRange": 33000,
+  "description": "SA-11 Gadfly radar SAM site 9K37. Range/alt max: 42 km, 82,000 ft.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "11"
+ },
+ "SA-18 Igla manpad": {
+  "name": "SA-18 Igla manpad",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-18 Igla \"Grouse\" C2",
+  "shortLabel": "18",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": false,
+  "acquisitionRange": 5000,
+  "engagementRange": 5200,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "MANPADS",
+  "markerFile": "groundunit-sam"
+ },
+ "SA-18 Igla-S manpad": {
+  "name": "SA-18 Igla-S manpad",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-18 Igla \"Grouse\" C2",
+  "shortLabel": "18",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": false,
+  "acquisitionRange": 5000,
+  "engagementRange": 5200,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "MANPADS",
+  "markerFile": "groundunit-sam"
+ },
+ "SA-2 SAM Battery": {
+  "name": "SA-2 SAM Battery",
+  "coalition": "red",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "SA-2 SAM Battery",
+  "shortLabel": "2",
+  "range": "Long",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 160000,
+  "engagementRange": 42000,
+  "description": "SA-2 Guideline radar SAM site S-75. Range/alt max: 24 km, 66,000 ft.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "2"
+ },
+ "SA-3 SAM Battery": {
+  "name": "SA-3 SAM Battery",
+  "coalition": "red",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "SA-3 SAM Battery",
+  "shortLabel": "3",
+  "range": "Medium",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 160000,
+  "engagementRange": 18000,
+  "description": "SA-3 Goa radar SAM site S-125. Range/alt max: 35 km, 60,000 ft.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "3"
+ },
+ "SA-5 SAM Battery": {
+  "name": "SA-5 SAM Battery",
+  "coalition": "red",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "SA-5 SAM Battery",
+  "shortLabel": "5",
+  "range": "Long",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "acquisitionRange": 400000,
+  "engagementRange": 250000,
+  "description": "SA-5 Gammon radar SAM site S-200. Range/alt max: 300 km, 120,000 ft. Min 60km.",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "5"
+ },
+ "SA-6 SAM Battery": {
+  "name": "SA-6 SAM Battery",
+  "coalition": "red",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "SA-6 SAM Battery",
+  "shortLabel": "6",
+  "range": "Medium",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "description": "SA-6 Gainful radar SAM site 2K12. Range/alt max: 55 km, 50,000 ft. Tracked vehicle.",
+  "abilities": "",
+  "acquisitionRange": 68000,
+  "engagementRange": 22000,
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar",
+  "markerFile": "groundunit-sam",
+  "unitWhenGrouped": "6"
+ },
+ "Stinger comm dsr": {
+  "name": "Stinger comm dsr",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Stinger",
+  "shortLabel": "Stinger",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": false,
+  "liveries": {
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "multicam": {
+    "name": "multicam",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "MANPADS, IR",
+  "markerFile": "groundunit-sam"
+ },
+ "Stinger comm": {
+  "name": "Stinger comm",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Stinger",
+  "shortLabel": "Stinger",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": false,
+  "liveries": {
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "multicam": {
+    "name": "multicam",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "IR, CA, MANPADS",
+  "markerFile": "groundunit-sam"
+ },
+ "Strela-1 9P31": {
+  "name": "Strela-1 9P31",
+  "coalition": "red",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "SA-9 Gaskin",
+  "shortLabel": "9",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 4200,
+  "description": "SA-9 Gaskin Strela 1. Range/alt max: 5 km, 12,000 ft.",
+  "abilities": "Combined arms, Amphibious",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "IR, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "Strela-10M3": {
+  "name": "Strela-10M3",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-13  Gopher",
+  "shortLabel": "13",
+  "range": "Short",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 8000,
+  "engagementRange": 5000,
+  "description": "SA-13 Gopher Strela 10. Range/alt max: 5 km, 12,000 ft.",
+  "abilities": "Combined arms, Amphibious",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Optical, Radar, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "T-55": {
+  "name": "T-55",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "T-55",
+  "shortLabel": "T-55",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 4000,
+  "engagementRange": 1000,
+  "description": "Medium tank. Tracked. 100 mm D-10T rifled gun (APFSDS and HEAT), 7.62 mm SGMT machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "tags": "CA",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.3,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "shotsBaseInterval": 9,
+  "aimMethodRange": 2500,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 6,
+  "canAAA": false
+ },
+ "T-72B": {
+  "name": "T-72B",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "T-72B",
+  "shortLabel": "T-72B",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 125 mm 2A46M smoothbore gun (APFSDS and HEAT), 7.62 mm PKT machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "shotsBaseInterval": 8,
+  "shotsBaseScatter": 5,
+  "barrelHeight": 2.5,
+  "muzzleVelocity": 700,
+  "aimMethodRange": 2500,
+  "alertnessTimeConstant": 4,
+  "canAAA": false,
+  "tags": "CA"
+ },
+ "T-80UD": {
+  "name": "T-80UD",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "T-80UD",
+  "shortLabel": "T-80UD",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "iran - 01": {
+    "name": "Iran - 01",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "iran - 02": {
+    "name": "Iran - 02",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 125 mm 2A46M-1 smoothbore gun (APFSDS and HEAT), 7.62 mm PKT machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 800,
+  "barrelHeight": 2.32,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "shotsBaseInterval": 6,
+  "tags": "CA",
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5,
+  "canAAA": false
+ },
+ "T-90": {
+  "name": "T-90",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "T-90",
+  "shortLabel": "T-90",
+  "filename": "",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 6000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 125 mm 2A46M smoothbore gun (APFSDS and HEAT), 7.62 mm PKT machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.7,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "shotsBaseInterval": 8,
+  "tags": "CA",
+  "canAAA": false,
+  "alertnessTimeConstant": 3,
+  "shotsBaseScatter": 5,
+  "aimMethodRange": 3000
+ },
+ "Tor 9A331": {
+  "name": "Tor 9A331",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SA-15 Gauntlet",
+  "shortLabel": "15",
+  "range": "Medium",
+  "filename": "sam.png",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 25000,
+  "engagementRange": 12000,
+  "description": "SA-15 Gauntlet 9K330 Tor. Range/alt max: 12 km, 20,000 ft.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Radar, CA",
+  "markerFile": "groundunit-sam"
+ },
+ "Ural-375 ZU-23 Insurgent": {
+  "name": "Ural-375 ZU-23 Insurgent",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "Ural-375 with ZU-23 Insurgent",
+  "shortLabel": "Ural-375 ZU-23 Insurgent",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "Ural ZU-23. Truck mounted ZU-23 23 mm gun manually aimed.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "shotsToFire": 5,
+  "aimTime": 6,
+  "muzzleVelocity": 1000,
+  "barrelHeight": 3,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 4000,
+  "targetingRange": 100,
+  "alertnessTimeConstant": 5,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 5
+ },
+ "Ural-375 ZU-23": {
+  "name": "Ural-375 ZU-23",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "Ural-375 with ZU-23",
+  "shortLabel": "Ural-375 ZU-23",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "Ural ZU-23. Truck mounted ZU-23 AAA 23 mm gun manually aimed.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "cost": null,
+  "barrelHeight": 3,
+  "muzzleVelocity": 1000,
+  "aimTime": 6,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "alertnessTimeConstant": 5,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 5,
+  "aimMethodRange": 4000,
+  "targetingRange": 100
+ },
+ "Vulcan": {
+  "name": "Vulcan",
+  "coalition": "blue",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "Vulcan",
+  "shortLabel": "Vulcan",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "usa_autumn": {
+    "name": "USA_Autumn",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "isr_winter": {
+    "name": "ISR_Winter",
+    "countries": "All"
+   },
+   "isr_spring": {
+    "name": "ISR_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "isr_autumn": {
+    "name": "ISR_Autumn",
+    "countries": "All"
+   },
+   "usa_spring": {
+    "name": "USA_Spring",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "usa_summer": {
+    "name": "USA_Summer",
+    "countries": "All"
+   },
+   "usa_winter": {
+    "name": "USA_Winter",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "isr_summer": {
+    "name": "ISR_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "M113 Vulcan. Tracked M113 APC with radar guided Vulcan 20 mm cannon.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "cost": null,
+  "barrelHeight": 2.5,
+  "muzzleVelocity": 900,
+  "aimTime": 8,
+  "shotsToFire": 5,
+  "tags": "Radar, CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 4000,
+  "targetingRange": 100,
+  "alertnessTimeConstant": 5,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 5
+ },
+ "ZSU-23-4 Shilka": {
+  "name": "ZSU-23-4 Shilka",
+  "coalition": "red",
+  "era": "Mid Cold War",
+  "category": "groundunit",
+  "label": "ZSU-23-4 Shilka",
+  "shortLabel": "ZSU-23-4 Shilka",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "grg_summer": {
+    "name": "GRG_Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "ukr_winter": {
+    "name": "UKR_Winter",
+    "countries": "All"
+   },
+   "grg_spring": {
+    "name": "GRG_Spring",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "ukr_autumn": {
+    "name": "UKR_Autumn",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "grg_winter": {
+    "name": "GRG_Winter",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "ukr_spring": {
+    "name": "UKR_Spring",
+    "countries": "All"
+   },
+   "grg_autumn": {
+    "name": "GRG_Autumn",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   },
+   "ukr_summer": {
+    "name": "UKR_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 8000,
+  "engagementRange": 2000,
+  "description": "ZSU-23-4 Shilka. Tracked. 4 x 23 mm radar guided autocannons.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 1.8,
+  "muzzleVelocity": 1000,
+  "aimTime": 13,
+  "shotsToFire": 5,
+  "cost": null,
+  "tags": "Radar, CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 4000,
+  "targetingRange": 100,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "ZU-23 Closed Insurgent": {
+  "name": "ZU-23 Closed Insurgent",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "ZU-23 Closed Insurgent",
+  "shortLabel": "ZU-23 Closed Insurgent",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2500,
+  "description": "ZSU-23. Fixed. Manually aimed AAA 23 mm autocannons. Sandbags.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 2,
+  "muzzleVelocity": 1000,
+  "aimTime": 9,
+  "shotsToFire": 5,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "alertnessTimeConstant": 5,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 5
+ },
+ "ZU-23 Emplacement Closed": {
+  "name": "ZU-23 Emplacement Closed",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "ZU-23 Emplacement Closed",
+  "shortLabel": "ZU-23 Emplacement Closed",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "ZSU-23. Fixed. Manually aimed AAA 23 mm autocannons. Sandbags.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "shotsToFire": 5,
+  "aimTime": 6,
+  "muzzleVelocity": 1000,
+  "barrelHeight": 1.5,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 4000,
+  "targetingRange": 100,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "ZU-23 Emplacement": {
+  "name": "ZU-23 Emplacement",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "ZU-23 Emplacement",
+  "shortLabel": "ZU-23 Emplacement",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "grc_summer": {
+    "name": "GRC_Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "grc_autumn": {
+    "name": "GRC_Autumn",
+    "countries": "All"
+   },
+   "grc_spring": {
+    "name": "GRC_Spring",
+    "countries": "All"
+   },
+   "grc_winter": {
+    "name": "GRC_Winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "ZSU-23. Fixed. Manually aimed AAA 23 mm autocannons.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "shotsToFire": 5,
+  "aimTime": 6,
+  "muzzleVelocity": 1000,
+  "barrelHeight": 1.5,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 4000,
+  "targetingRange": 100,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "ZU-23 Insurgent": {
+  "name": "ZU-23 Insurgent",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "ZU-23 Insurgent",
+  "shortLabel": "ZU-23 Insurgent",
+  "filename": "",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "ZSU-23. Fixed. Manually aimed AAA 23 mm autocannons.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "shotsToFire": 5,
+  "aimTime": 6,
+  "muzzleVelocity": 1000,
+  "barrelHeight": 1.5,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5,
+  "aimMethodRange": 4000,
+  "targetingRange": 100
+ },
+ "Soldier stinger": {
+  "name": "Soldier stinger",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "FIM-92 Stinger",
+  "shortLabel": "St",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "default": {
+    "name": "Default",
+    "countries": [
+     "hide"
+    ]
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": [
+     "AUSAF",
+     "USA"
+    ]
+   },
+   "isr": {
+    "name": "Desert",
+    "countries": [
+     "AUSAF"
+    ]
+   },
+   "usa": {
+    "name": "Digital grey",
+    "countries": [
+     "AUSAF",
+     "hide"
+    ]
+   },
+   "grg": {
+    "name": "Digital green (Georgia)",
+    "countries": [
+     "AUSAF"
+    ]
+   },
+   "grc": {
+    "name": "Digital green",
+    "countries": [
+     "hide"
+    ]
+   },
+   "digital_green": {
+    "name": "Digital green",
+    "countries": [
+     "AUSAF",
+     "USA"
+    ]
+   },
+   "ins": {
+    "name": "Striped green",
+    "countries": [
+     "AUSAF"
+    ]
+   },
+   "digital_grey": {
+    "name": "Digital grey",
+    "countries": [
+     "AUSAF",
+     "USA",
+     "ISR"
+    ]
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 4500,
+  "description": "Stinger IR MANPADS FIM-92. Range/alt max: 5 km, 15,000 ft.",
+  "abilities": "Combined arms,",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "IR, CA, MANPADS",
+  "markerFile": "groundunit-sam"
+ },
+ "SA-18 Igla-S comm": {
+  "name": "SA-18 Igla-S comm",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "SA-18 Igla \"Grouse\" C2",
+  "shortLabel": "18",
+  "type": "SAM Site",
+  "enabled": false,
+  "liveries": {},
+  "acquisitionRange": 5000,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "MANPADS",
+  "markerFile": "groundunit-sam"
+ },
+ "Merkava_Mk4": {
+  "name": "Merkava_Mk4",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Merkava IV",
+  "shortLabel": "Merkava IV",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {},
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore MG253 main gun (APFSDS and HEAT), 7.62 mm machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 3.1,
+  "shotsBaseInterval": 6,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "tags": "CA",
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "canAAA": false,
+  "alertnessTimeConstant": 3
+ },
+ "KS-19": {
+  "name": "KS-19",
+  "coalition": "",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "KS-19 100mm",
+  "shortLabel": "KS-19 100mm",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 30000,
+  "engagementRange": 21000,
+  "description": "KS-19. 100 mm AAA gun. Fixed manually aimed large calibre anti aircraft gun.",
+  "abilities": "AA",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "muzzleVelocity": 600,
+  "aimTime": 50,
+  "shotsToFire": 10,
+  "barrelHeight": 5,
+  "cost": null,
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "targetingRange": 100,
+  "aimMethodRange": 100,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 15,
+  "alertnessTimeConstant": 5,
+  "flak": true
+ },
+ "SON_9": {
+  "name": "SON_9",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "Fire Can SON-9",
+  "shortLabel": "Fire Can SON-9",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 92600,
+  "engagementRange": null,
+  "description": "SON-9 Fire Can. Gun laying radar, not AAA. Can be used to direct fire of up to 4 AAA guns if grouped with them.",
+  "abilities": "Fire Director",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "cost": null,
+  "tags": "Radar",
+  "markerFile": "groundunit-aaa",
+  "canAAA": false
+ },
+ "HL_ZU-23": {
+  "name": "HL_ZU-23",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "Technical with ZU-23",
+  "shortLabel": "Technical with ZU-23",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2500,
+  "description": "Technical. Car with ZSU-23  23 mm gun manually aimed.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "cost": null,
+  "barrelHeight": 2,
+  "muzzleVelocity": 1000,
+  "aimTime": 6,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 4000,
+  "targetingRange": 200,
+  "shotsBaseInterval": 15,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "tt_ZU-23": {
+  "name": "tt_ZU-23",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "Pickup with ZU-23",
+  "shortLabel": "Pickup with ZU-23",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 2000,
+  "description": "Box car with ZU-23 AAA 23mm gun manually aimed.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": true,
+  "cost": null,
+  "barrelHeight": 2,
+  "muzzleVelocity": 1000,
+  "aimTime": 6,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "alertnessTimeConstant": 5,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 15,
+  "aimMethodRange": 4500,
+  "targetingRange": 100
+ },
+ "M4_Sherman": {
+  "name": "M4_Sherman",
+  "coalition": "blue",
+  "era": "WW2",
+  "category": "groundunit",
+  "label": "Tk M4 Sherman",
+  "shortLabel": "Tk M4 Sherman",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 2500,
+  "engagementRange": 1000,
+  "description": "Medium tank. Tracked. 75 mm gun (AP and HE), 0.50 caliber coax machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 650,
+  "barrelHeight": 2.74,
+  "shotsBaseInterval": 5,
+  "tags": "CA",
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "aimMethodRange": 2000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 8,
+  "canAAA": false
+ },
+ "FPS-117 Dome": {
+  "name": "FPS-117 Dome",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "AN/FPS-117 EWR",
+  "shortLabel": "AN/FPS-117 (Dome)",
+  "type": "Radar (EWR)",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 400000,
+  "engagementRange": 0,
+  "description": "AN/FPS-117 early warning radar in a domed building",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "Dome",
+  "markerFile": "groundunit-ewr"
+ },
+ "FPS-117 ECS": {
+  "name": "FPS-117 ECS",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "AN/FPS-117 ECS",
+  "shortLabel": "ECS",
+  "type": "Radar (EWR)",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 0,
+  "description": "AN/FPS-117 engagement control station, this is not a radar",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "tags": "C&C",
+  "markerFile": "groundunit-ewr"
+ },
+ "FPS-117": {
+  "name": "FPS-117",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "AN/FPS-117 EWR",
+  "shortLabel": "AN/FPS-117",
+  "type": "Radar (EWR)",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 463000,
+  "engagementRange": 0,
+  "description": "AN/FPS-117 early warning radar on a large metal platform",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false,
+  "markerFile": "groundunit-ewr"
+ },
+ "ZSU_57_2": {
+  "name": "ZSU_57_2",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "ZSU-57-2",
+  "shortLabel": "ZSU-57-2",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 10000,
+  "engagementRange": 9000,
+  "description": "ZSU-57-2. Tracked self propelled optically guided AA gun. 2 x 57 mm auto cannon.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "muzzleVelocity": 1000,
+  "barrelHeight": 3,
+  "aimTime": 15,
+  "shotsToFire": 5,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimMethodRange": 100,
+  "targetingRange": 100,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "S-60_Type59_Artillery": {
+  "name": "S-60_Type59_Artillery",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "S-60 57mm",
+  "shortLabel": "S-60 57mm",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "syr": {
+    "name": "Syrian",
+    "countries": [
+     "SYR"
+    ]
+   },
+   "default": {
+    "name": "Green",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 6000,
+  "engagementRange": 6000,
+  "description": "AZP S-60. Fixed. Automatic anti aircraft gun 57mm.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "muzzleVelocity": 1000,
+  "aimTime": 10,
+  "shotsToFire": 5,
+  "barrelHeight": 2,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "alertnessTimeConstant": 5,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 5,
+  "aimMethodRange": 5000,
+  "targetingRange": 2000
+ },
+ "T-72B3": {
+  "name": "T-72B3",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "T-72B3",
+  "shortLabel": "T-72B3",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 125 mm 2A46M smoothbore gun (APFSDS and HEAT), 7.62 mm PKT coaxial machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.7,
+  "shotsBaseInterval": 8,
+  "shotsToFire": 5,
+  "aimTime": 3,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 3,
+  "aimMethodRange": 3000,
+  "canAAA": true,
+  "tags": ""
+ },
+ "PT_76": {
+  "name": "PT_76",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "LT PT-76",
+  "shortLabel": "LT PT-76",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {},
+  "acquisitionRange": 3000,
+  "engagementRange": 1000,
+  "description": "Amphibious Light tank. Tracked. 76.2 mm D-56T smoothbore gun (AP and HE), 7.62 mm coaxial machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "tags": "CA, Amphibious",
+  "targetingRange": 100,
+  "muzzleVelocity": 625,
+  "barrelHeight": 1.85,
+  "shotsBaseInterval": 9,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "aimMethodRange": 2000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 9
+ },
+ "bofors40": {
+  "name": "bofors40",
+  "coalition": "blue",
+  "era": "WW2",
+  "category": "groundunit",
+  "label": "Bofors 40mm",
+  "shortLabel": "Bofor",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 3000,
+  "description": "Bofors gun. Fixed anti aircraft 40mm gun. Manually aimed.",
+  "abilities": "Combined arms, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 1.35,
+  "muzzleVelocity": 850,
+  "aimTime": 8,
+  "shotsToFire": 2,
+  "cost": null,
+  "tags": "CA",
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "shotsBaseScatter": 5,
+  "shotsBaseInterval": 10,
+  "alertnessTimeConstant": 15,
+  "targetingRange": 200,
+  "aimMethodRange": 4000
+ },
+ "Chieftain_mk3": {
+  "name": "Chieftain_mk3",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Chieftain Mk.3",
+  "shortLabel": "Chieftain Mk.3",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "cam_spring": {
+    "name": "Cam spring",
+    "countries": "All"
+   },
+   "cam_autumn": {
+    "name": "Cam autumn",
+    "countries": "All"
+   },
+   "cam_summer": {
+    "name": "Cam summer",
+    "countries": "All"
+   },
+   "desert_winter": {
+    "name": "desert winter",
+    "countries": "All"
+   },
+   "desert_summer": {
+    "name": "desert summer",
+    "countries": "All"
+   },
+   "desert_spring": {
+    "name": "desert spring",
+    "countries": "All"
+   },
+   "desert_autumn": {
+    "name": "desert autumn",
+    "countries": "All"
+   },
+   "cam_winter": {
+    "name": "Cam winter",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 4000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm rifled main gun (APFSDS and HESH), 7.62 mm coax machine gun.",
+  "abilities": "Combined arms",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 1.7,
+  "muzzleVelocity": 800,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-tank",
+  "shotsBaseInterval": 7,
+  "targetingRange": 100,
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 2
+ },
+ "flak18": {
+  "name": "flak18",
+  "coalition": "",
+  "era": "WW2",
+  "category": "groundunit",
+  "label": "8.8cm Flak 18",
+  "shortLabel": "8.8cm Flak 18",
+  "type": "AAA",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "aimTime": 50,
+  "shotsToFire": 5,
+  "acquisitionRange": 15000,
+  "engagementRange": 12000,
+  "description": "The flak 88. Fixed anti aircraft gun famously also used as an anti-tank gun. 88mm flak gun.",
+  "abilities": "AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "muzzleVelocity": 880,
+  "barrelHeight": 2.1,
+  "cost": 40000,
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "shotsBaseInterval": 10,
+  "shotsBaseScatter": 5,
+  "aimMethodRange": 100,
+  "targetingRange": 100,
+  "alertnessTimeConstant": 15,
+  "flak": true
+ },
+ "Pz_IV_H": {
+  "name": "Pz_IV_H",
+  "coalition": "red",
+  "era": "WW2",
+  "category": "groundunit",
+  "label": "Tk PzIV H",
+  "shortLabel": "Tk PzIV H",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 2500,
+  "engagementRange": 1000,
+  "description": "Medium tank. Tracked. 75 mm KwK 40 L/48 gun (AP and HE), 7.92 mm MG34 coaxial machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.68,
+  "shotsBaseInterval": 4,
+  "shotsToFire": 5,
+  "aimTime": 5,
+  "tags": "CA",
+  "aimMethodRange": 2000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 9
+ },
+ "Leopard-2A5": {
+  "name": "Leopard-2A5",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Leopard-2A5",
+  "shortLabel": "Leopard-2A5",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "desert_winter": {
+    "name": "Desert_winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   },
+   "desert_summer": {
+    "name": "Desert_summer",
+    "countries": "All"
+   },
+   "desert_spring": {
+    "name": "Desert_spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "kfor_winter": {
+    "name": "Kfor_summer",
+    "countries": "All"
+   },
+   "kfor_summer": {
+    "name": "Kfor_summer",
+    "countries": "All"
+   },
+   "kfor_spring": {
+    "name": "Kfor_spring",
+    "countries": "All"
+   },
+   "kfor_autumn": {
+    "name": "Kfor_autumn",
+    "countries": "All"
+   },
+   "desert_autumn": {
+    "name": "Desert_autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore L/55 main gun (APFSDS and HEAT), 7.62 mm coaxial machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "aimMethodRange": 3000,
+  "barrelHeight": 2.7,
+  "muzzleVelocity": 700,
+  "aimTime": 3,
+  "shotsToFire": 5,
+  "shotsBaseInterval": 6,
+  "tags": "CA",
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 3,
+  "canAAA": true
+ },
+ "leopard-2A4": {
+  "name": "leopard-2A4",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Leopard-2A4",
+  "shortLabel": "Leopard-2A4",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "hel_autumn": {
+    "name": "HEL_autumn",
+    "countries": "All"
+   },
+   "fin_autumn": {
+    "name": "FIN_autumn",
+    "countries": "All"
+   },
+   "fin_summer": {
+    "name": "FIN_summer",
+    "countries": "All"
+   },
+   "hel_summer": {
+    "name": "HEL_summer",
+    "countries": "All"
+   },
+   "chl_winter": {
+    "name": "CHL_winter",
+    "countries": "All"
+   },
+   "chl_spring": {
+    "name": "CHL_spring",
+    "countries": "All"
+   },
+   "woodland_summer": {
+    "name": "woodland_summer",
+    "countries": "All"
+   },
+   "woodland_autumn": {
+    "name": "woodland_autumn",
+    "countries": "All"
+   },
+   "hel_spring": {
+    "name": "HEL_spring",
+    "countries": "All"
+   },
+   "woodland_winter": {
+    "name": "CHL_winter",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "chl_summer": {
+    "name": "CHL_summer",
+    "countries": "All"
+   },
+   "hel_winter": {
+    "name": "HEL_winter",
+    "countries": "All"
+   },
+   "fin_spring": {
+    "name": "FIN_spring",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   },
+   "chl_autumn": {
+    "name": "CHL_autumn",
+    "countries": "All"
+   },
+   "fin_winter": {
+    "name": "FIN_winter",
+    "countries": "All"
+   },
+   "woodland_spring": {
+    "name": "woodland_spring",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore L/44 main gun (APFSDS and HEAT), 7.62 mm machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.7,
+  "shotsBaseInterval": 7,
+  "tags": "CA",
+  "aimTime": 6,
+  "shotsToFire": 5,
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 3,
+  "canAAA": true
+ },
+ "leopard-2A4_trs": {
+  "name": "leopard-2A4_trs",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Leopard-2A4 Trs",
+  "shortLabel": "Leopard-2A4 Trs",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "spring_woodland": {
+    "name": "Spring_Woodland",
+    "countries": "All"
+   },
+   "tur_autumn_camo": {
+    "name": "TUR_Autumn_Woodland",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "summer_woodland": {
+    "name": "Summer_Woodland",
+    "countries": "All"
+   },
+   "tur_winter_desert": {
+    "name": "TUR_Winter_Desert",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "tur_summer_camo": {
+    "name": "TUR_Summer_Woodland",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "autumn_woodland": {
+    "name": "Autumn_Woodland",
+    "countries": "All"
+   },
+   "tur_spring_camo": {
+    "name": "TUR_Spring_Woodland",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "tur_summer_desert": {
+    "name": "TUR_Summer_Desert",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "tur_autumn_desert": {
+    "name": "TUR_Autumn_Desert",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "tur_spring_desert": {
+    "name": "TUR_Spring_Desert",
+    "countries": [
+     "TUR"
+    ]
+   },
+   "winter_woodland": {
+    "name": "Winter_Woodland",
+    "countries": "All"
+   },
+   "tur_winter_camo": {
+    "name": "TUR_Winter_Woodland",
+    "countries": [
+     "TUR"
+    ]
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 120 mm smoothbore L/44 main gun (APFSDS and HEAT), 7.62 mm machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.7,
+  "shotsBaseInterval": 7,
+  "shotsToFire": 5,
+  "aimTime": 8,
+  "tags": "CA",
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 3,
+  "canAAA": true
+ },
+ "ZTZ96B": {
+  "name": "ZTZ96B",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Type 96B",
+  "shortLabel": "Type 96B",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "jungle camo": {
+    "name": "Jungle Camo",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 125 mm smoothbore gun (APFSDS and HEAT), 7.62 mm Type 86H-7 machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 2.9,
+  "muzzleVelocity": 700,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "markerFile": "groundunit-tank",
+  "shotsBaseInterval": 7,
+  "tags": "CA",
+  "targetingRange": 100,
+  "alertnessTimeConstant": 3,
+  "shotsBaseScatter": 5,
+  "aimMethodRange": 3000,
+  "canAAA": false
+ },
+ "TYPE-59": {
+  "name": "TYPE-59",
+  "coalition": "red",
+  "era": "Early Cold War",
+  "category": "groundunit",
+  "label": "Type 59",
+  "shortLabel": "Type 59",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "pla camo": {
+    "name": "PLA Army",
+    "countries": [
+     "CHN"
+    ]
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "Main battle tank. Tracked. 100 mm Type 59 rifled gun (AP and HE), 7.62 mm Type 59T machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank",
+  "targetingRange": 100,
+  "muzzleVelocity": 700,
+  "barrelHeight": 2.5,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "shotsBaseInterval": 10,
+  "tags": "CA",
+  "aimMethodRange": 3000,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 6,
+  "canAAA": false
+ },
+ "Tiger_I": {
+  "name": "Tiger_I",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Tk Tiger 1",
+  "shortLabel": "Tk Tiger 1",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "Tiger_II_H": {
+  "name": "Tiger_II_H",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Tk Tiger II",
+  "shortLabel": "Tk Tiger II",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 6000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "Pz_V_Panther_G": {
+  "name": "Pz_V_Panther_G",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Tk Panther G",
+  "shortLabel": "Tk Panther G (Pz V)",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "tags": "Pz V",
+  "markerFile": "groundunit-tank"
+ },
+ "Jagdpanther_G1": {
+  "name": "Jagdpanther_G1",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun Jagdpanther TD",
+  "shortLabel": "Self Propelled Gun Jagdpanther TD",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 5000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "JagdPz_IV": {
+  "name": "JagdPz_IV",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun Jagdpanzer IV TD",
+  "shortLabel": "Self Propelled Gun Jagdpanzer IV TD",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "Stug_IV": {
+  "name": "Stug_IV",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun StuG IV AG",
+  "shortLabel": "Self Propelled Gun StuG IV AG",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "SturmPzIV": {
+  "name": "SturmPzIV",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun Brummbaer AG",
+  "shortLabel": "Self Propelled Gun Brummbaer AG",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 4500,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "KDO_Mod40": {
+  "name": "KDO_Mod40",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA Kdo.G.40",
+  "shortLabel": "AAA Kdo.G.40",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 30000,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-aaa",
+  "canAAA": false
+ },
+ "Flakscheinwerfer_37": {
+  "name": "Flakscheinwerfer_37",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "SL Flakscheinwerfer 37",
+  "shortLabel": "SL Flakscheinwerfer 37",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 15000,
+  "engagementRange": 15000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "flak": true
+ },
+ "Maschinensatz_33": {
+  "name": "Maschinensatz_33",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Maschinensatz 33 Gen",
+  "shortLabel": "Maschinensatz 33 Gen",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-aaa",
+  "canAAA": false
+ },
+ "Stug_III": {
+  "name": "Stug_III",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun StuG III G AG",
+  "shortLabel": "Self Propelled Gun StuG III G AG",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "Elefant_SdKfz_184": {
+  "name": "Elefant_SdKfz_184",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun Elefant TD",
+  "shortLabel": "Self Propelled Gun Elefant TD",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 6000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "FuMG-401": {
+  "name": "FuMG-401",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "FuMG-401 Freya LZ",
+  "shortLabel": "FuMG-401 Freya LZ",
+  "type": "Radar (EWR)",
+  "enabled": false,
+  "liveries": {
+   "grey_summer": {
+    "name": "Grey_Summer",
+    "countries": "All"
+   },
+   "grey_spring": {
+    "name": "Grey_Spring",
+    "countries": "All"
+   },
+   "grey_winter": {
+    "name": "Grey_Winter",
+    "countries": "All"
+   },
+   "grey_autumn": {
+    "name": "Grey_Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 160000,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false
+ },
+ "FuSe-65": {
+  "name": "FuSe-65",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "FuSe-65 W\u00c3\u0192\u00c6\u2019\u00c3\u201a\u00c2\u00bcrzburg-Riese",
+  "shortLabel": "FuSe-65 W\u00c3\u0192\u00c6\u2019\u00c3\u201a\u00c2\u00bcrzburg-Riese",
+  "type": "Radar (EWR)",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 60000,
+  "engagementRange": 0,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": false,
+  "canRearm": false
+ },
+ "Cromwell_IV": {
+  "name": "Cromwell_IV",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Tk Cromwell IV",
+  "shortLabel": "Tk Cromwell IV",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "M4A4_Sherman_FF": {
+  "name": "M4A4_Sherman_FF",
+  "coalition": "blue",
+  "era": "WW2",
+  "category": "groundunit",
+  "label": "Tk M4A4 Sherman Firefly",
+  "shortLabel": "Tk M4A4 Sherman Firefly",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "Centaur_IV": {
+  "name": "Centaur_IV",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Tk Centaur IV CS",
+  "shortLabel": "Tk Centaur IV CS",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 6000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "Churchill_VII": {
+  "name": "Churchill_VII",
+  "coalition": "blue",
+  "era": "WW2",
+  "category": "groundunit",
+  "label": "Churchill VII",
+  "shortLabel": "Churchill VII",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 3000,
+  "description": "Tank. Tracked. 95 mm main gun, 7.92 mm coax machine gun.",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 2,
+  "muzzleVelocity": 800,
+  "aimTime": 5,
+  "shotsToFire": 100,
+  "markerFile": "groundunit-tank"
+ },
+ "QF_37_AA": {
+  "name": "QF_37_AA",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA QF 3.7\"",
+  "shortLabel": "AAA QF 3.7\"",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 9000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimTime": 6
+ },
+ "M10_GMC": {
+  "name": "M10_GMC",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "Self Propelled Gun M10 GMC TD",
+  "shortLabel": "Self Propelled Gun M10 GMC TD",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 6000,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-tank"
+ },
+ "M45_Quadmount": {
+  "name": "M45_Quadmount",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA M45 Quadmount HB 12.7mm",
+  "shortLabel": "AAA M45 Quadmount HB 12.7mm",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 1500,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimTime": 6
+ },
+ "M1_37mm": {
+  "name": "M1_37mm",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA M1 37mm",
+  "shortLabel": "AAA M1 37mm",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "autumn",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 5700,
+  "description": "",
+  "abilities": "",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "markerFile": "groundunit-aaa",
+  "canAAA": true,
+  "aimTime": 5
+ },
+ "flak30": {
+  "name": "flak30",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA Flak 38 20mm",
+  "shortLabel": "AAA Flak 38 20mm",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "flak": true,
+  "acquisitionRange": 0,
+  "engagementRange": 2500
+ },
+ "flak36": {
+  "name": "flak36",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA 8,8cm Flak 36",
+  "shortLabel": "AAA 8,8cm Flak 36",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "flak": true,
+  "acquisitionRange": 0,
+  "engagementRange": 5000
+ },
+ "flak37": {
+  "name": "flak37",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA 8,8cm Flak 37",
+  "shortLabel": "AAA 8,8cm Flak 37",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "flak": true,
+  "acquisitionRange": 0,
+  "engagementRange": 5000
+ },
+ "flak38": {
+  "name": "flak38",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA Flak-Vierling 38 Quad 20mm",
+  "shortLabel": "AAA Flak-Vierling 38 Quad 20mm",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "flak": true,
+  "acquisitionRange": 0,
+  "engagementRange": 2500
+ },
+ "flak41": {
+  "name": "flak41",
+  "coalition": "",
+  "era": "",
+  "category": "groundunit",
+  "label": "AAA 8,8cm Flak 41",
+  "shortLabel": "AAA 8,8cm Flak 41",
+  "type": "AAA",
+  "enabled": false,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   }
+  },
+  "flak": true,
+  "acquisitionRange": 0,
+  "engagementRange": 5000
+ },
+ "M1A2C_SEP_V3": {
+  "name": "M1A2C_SEP_V3",
+  "coalition": "",
+  "era": "",
+  "label": "MBT M1A2C SEP v3 Abrams",
+  "shortLabel": "MBT M1A2C SEP v3 Abrams",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "spring": {
+    "name": "Woodland_spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Woodland_winter",
+    "countries": "All"
+   },
+   "desert_winter": {
+    "name": "Desert_winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Woodland_autumn",
+    "countries": "All"
+   },
+   "desert_summer": {
+    "name": "Desert_summer",
+    "countries": "All"
+   },
+   "desert_spring": {
+    "name": "Desert_spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Woodland_summer",
+    "countries": "All"
+   },
+   "desert_autumn": {
+    "name": "Desert_autumn",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 0,
+  "engagementRange": 3500
+ },
+ "Type_98_Ke_Ni": {
+  "name": "Type_98_Ke_Ni",
+  "coalition": "",
+  "era": "",
+  "label": "Tk Type 98 Ke Ni",
+  "shortLabel": "Tk Type 98 Ke Ni",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {},
+  "category": "groundunit",
+  "acquisitionRange": 5000,
+  "engagementRange": 3000
+ },
+ "Type_89_I_Go": {
+  "name": "Type_89_I_Go",
+  "coalition": "",
+  "era": "",
+  "label": "Tk Type 89 I Go",
+  "shortLabel": "Tk Type 89 I Go",
+  "type": "Tank",
+  "enabled": false,
+  "liveries": {
+   "periscope_state_1": {
+    "name": "Periscope State 1",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 5000,
+  "engagementRange": 3000
+ },
+ "CHAP_FV101": {
+  "canTargetPoint": true,
+  "markerFile": "groundunit-tank",
+  "tags": "Current Hill",
+  "name": "CHAP_FV101",
+  "coalition": "blue",
+  "era": "",
+  "label": "LT FV101 Scorpion",
+  "shortLabel": "LT FV101 Scorpion",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 5000,
+  "engagementRange": 5000,
+  "description": "The FV101 Scorpion is a British light tank that was introduced in the 1970s. It is part of the Combat Vehicle Reconnaissance (Tracked) family and is known for its speed and agility. The Scorpion is armed with a 76mm gun and a coaxial machine gun, making it effective against both infantry and light armored vehicles. It has a crew of three: commander, gunner, and driver. The vehicle's lightweight design allows it to be air-transportable, making it suitable for rapid deployment in various combat scenarios."
+ },
+ "CHAP_T90M": {
+  "canTargetPoint": true,
+  "markerFile": "groundunit-tank",
+  "tags": "Current Hill",
+  "name": "CHAP_T90M",
+  "coalition": "red",
+  "era": "Modern",
+  "label": "MBT T-90M",
+  "shortLabel": "MBT T-90M",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 8000,
+  "engagementRange": 5000,
+  "description": "The T-90M is a modernized version of the T-90 main battle tank, which is a third-generation Russian tank. The T-90M features several upgrades over its predecessor, including improved armor protection, enhanced firepower, and advanced electronics. It is equipped with a 125mm smoothbore gun capable of firing a variety of ammunition types, including anti-tank guided missiles. The tank also has an upgraded engine and suspension system, providing better mobility on the battlefield. The T-90M is designed to operate in various combat environments and is used by several countries around the world."
+ },
+ "CHAP_PantsirS1": {
+  "markerFile": "groundunit-sam",
+  "tags": "Current Hill",
+  "name": "CHAP_PantsirS1",
+  "coalition": "red",
+  "era": "Modern",
+  "label": "SA-22 Pantsir-S1 \"Greyhound\"",
+  "shortLabel": "22",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 36000,
+  "engagementRange": 20000,
+  "description": "The Pantsir-S1 is a Russian self-propelled anti-aircraft weapon system designed to provide short to medium-range air defense against a variety of aerial threats, including aircraft, helicopters, drones, and precision-guided munitions. The system combines surface-to-air missiles and anti-aircraft artillery in a single platform, allowing it to engage multiple targets simultaneously. The Pantsir-S1 is equipped with advanced radar and electro-optical tracking systems, enabling it to detect and track targets in various weather conditions. It is typically mounted on a wheeled or tracked chassis, providing mobility and rapid deployment capabilities."
+ },
+ "CHAP_T84OplotM": {
+  "canTargetPoint": true,
+  "markerFile": "groundunit-tank",
+  "tags": "Current Hill",
+  "name": "CHAP_T84OplotM",
+  "coalition": "blue",
+  "era": "Modern",
+  "label": "MBT T-84 Oplot-M",
+  "shortLabel": "MBT T-84 Oplot-M",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 8000,
+  "engagementRange": 5000,
+  "description": "The T-84 Oplot-M is a Ukrainian main battle tank that represents an advanced version of the T-80 series. It features significant upgrades in armor protection, firepower, and mobility. The tank is equipped with a 125mm smoothbore gun capable of firing a variety of ammunition types, including anti-tank guided missiles. The Oplot-M also boasts enhanced composite and reactive armor, providing improved survivability against modern anti-tank threats. Additionally, the tank is powered by a high-performance diesel engine, allowing for greater operational range and speed on the battlefield. The T-84 Oplot-M is designed to meet the demands of modern armored warfare and is used by the Ukrainian armed forces."
+ },
+ "CHAP_T64BV": {
+  "canTargetPoint": true,
+  "markerFile": "groundunit-tank",
+  "tags": "Current Hill",
+  "name": "CHAP_T64BV",
+  "coalition": "red",
+  "era": "Modern",
+  "label": "MBT T-64BV Type 2017",
+  "shortLabel": "MBT T-64BV Type 2017",
+  "type": "Tank",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 5000,
+  "engagementRange": 4000,
+  "description": "The T-64BV is an upgraded version of the T-64 main battle tank, which was originally developed by the Soviet Union. The T-64BV features enhanced armor protection, improved firepower, and advanced electronics compared to its predecessor. It is equipped with a 125mm smoothbore gun capable of firing a variety of ammunition types, including anti-tank guided missiles. The tank also has an upgraded engine and suspension system, providing better mobility on the battlefield. The T-64BV is designed to operate in various combat environments and has been used by several countries, including Ukraine and Russia."
+ },
+ "CHAP_TorM2": {
+  "markerFile": "groundunit-sam",
+  "tags": "Current Hill",
+  "name": "CHAP_TorM2",
+  "coalition": "red",
+  "era": "Modern",
+  "label": "SA-15 Tor M2 \"Gauntlet\"",
+  "shortLabel": "15",
+  "type": "SAM Site",
+  "enabled": true,
+  "liveries": {
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   }
+  },
+  "category": "groundunit",
+  "acquisitionRange": 32000,
+  "engagementRange": 16000,
+  "description": "The Tor M2 is a Russian self-propelled anti-aircraft missile system designed to provide short-range air defense against a variety of aerial threats, including aircraft, helicopters, drones, and precision-guided munitions. The system is mounted on a tracked chassis, providing mobility and the ability to operate in various terrains. The Tor M2 is equipped with advanced radar and electro-optical tracking systems, allowing it to detect and engage multiple targets simultaneously. It uses 9M331 missiles, which are highly maneuverable and capable of intercepting fast-moving targets. The Tor M2 is widely used by the Russian military and has been exported to several other countries."
+ }
+}

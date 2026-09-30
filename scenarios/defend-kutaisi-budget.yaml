@@ -1,0 +1,23 @@
+# Option B: a priced menu. Claude buys what it wants within budget_points, then places it.
+scenario: defend-kutaisi-budget
+coalition: red
+era: [Late Cold War, Modern]
+
+objective:
+  name: Kutaisi airbase
+  location: { lat: 42.176, lng: 42.482 }
+  radius_m: 3000
+  threat_axis_deg: 240
+
+budget_points: 400
+
+catalog:
+  classes: [sam_long, sam_medium, sam_short, aaa, ewr, fighter]   # leave out tanks for an air-defence job
+  exclude: []
+  price_overrides: {}          # e.g. { SA-10 SAM Battery: 200 }
+  class_prices: {}             # e.g. { fighter: 50 }
+
+rules:
+  keep_sams_dark_until_km: 40
+  max_distance_from_objective_km: 60
+  scramble_when_contact_within_km: 80

@@ -122,6 +122,9 @@ def main(argv: list[str] | None = None) -> None:
         if errors:
             sys.exit("Saved plan is invalid: " + "; ".join(errors))
     else:
+        if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+            sys.exit("ANTHROPIC_API_KEY is not set in this terminal. In PowerShell: $env:ANTHROPIC_API_KEY = \"sk-ant-...\" "
+                     "(or setx it, then open a new window). Or reuse a saved plan with --plan.")
         planner = Planner(PlannerConfig(**cfg.get("planner", {})))
         plan, warnings = planner.plan(scenario, catalog, bases)
         plan_path = log_dir / f"plan-{scenario.name}-{stamp}.json"

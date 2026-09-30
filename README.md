@@ -9,7 +9,7 @@ Design: see the "Claude as Red Commander: static defense design" doc in the proj
 ## Setup (on the machine running the mission)
 
 1. Python 3.10 or newer, then `pip install -r requirements.txt`.
-2. Set an Anthropic API key: `set ANTHROPIC_API_KEY=...` (Windows) or `export ANTHROPIC_API_KEY=...`.
+2. Set an Anthropic API key in the terminal you run the bridge from. PowerShell: `$env:ANTHROPIC_API_KEY = "sk-ant-..."` (this window only), or `setx ANTHROPIC_API_KEY "sk-ant-..."` and then open a new window. Linux: `export ANTHROPIC_API_KEY=...`.
 3. `copy config.example.yaml config.yaml` and set `saved_games_dcs` to your DCS Saved Games folder.
    The bridge reads `Config/olympus.json` (port and password hash) and
    `Mods/Services/Olympus` (unit databases and SAM templates) from there.

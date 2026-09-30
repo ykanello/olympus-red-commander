@@ -57,7 +57,9 @@ def encode_unit(u: FakeUnit) -> bytes:
 
 
 class FakeOlympus:
-    def __init__(self):
+    def __init__(self, honour_group_name: bool = True):
+        self.honour_group_name = honour_group_name  # Olympus v2.0.x ignores groupName and uses "Olympus-<n>"
+        self._groups = itertools.count(1)
         self.units: dict[int, FakeUnit] = {}
         self.commands: list[tuple[str, dict]] = []
         self.airbases = {
@@ -78,10 +80,11 @@ class FakeOlympus:
         return [name for name, _ in self.commands]
 
     def _spawn(self, body: dict, category: str) -> None:
+        group_name = body["groupName"] if self.honour_group_name else f"Olympus-{next(self._groups)}"
         for i, spec in enumerate(body["units"]):
             loc = spec["location"]
             self.add(category=category, coalition=1 if body["coalition"] == "red" else 2, name=spec["unitType"],
-                     group_name=body["groupName"], lat=loc["lat"], lng=loc["lng"], alt=spec.get("altitude") or 0,
+                     group_name=group_name, lat=loc["lat"], lng=loc["lng"], alt=spec.get("altitude") or 0,
                      is_leader=i == 0)
 
     def handle_put(self, payload: dict) -> dict:

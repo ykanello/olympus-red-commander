@@ -215,6 +215,23 @@ def test_execute_then_scramble_and_wake_sams(scenario, inventory_catalog, olympu
     assert events.count("scramble") == 1 and "sam_active" in events
 
 
+def test_groups_are_found_when_olympus_ignores_group_names(scenario, inventory_catalog, tmp_path):
+    fake = FakeOlympus(honour_group_name=False)
+    server, url = fake.serve()
+    try:
+        plan, _ = StaticPlanner(good_plan()).plan(scenario, inventory_catalog, RED_BASES)
+        cmd = Commander(OlympusClient(url, PASSWORD), scenario, inventory_catalog, RED_BASES, run_id="T", event_log=tmp_path / "e.jsonl")
+        cmd.execute(plan)
+        assert all(name.startswith("Olympus-") for name in cmd.groups)
+        sa11 = next(u for u in fake.units.values() if u.name == "SA-11 SAM Battery")
+        ewr = next(u for u in fake.units.values() if u.name == "1L13 EWR")
+        alarm = {body["ID"]: body["alarmState"] for name, body in fake.commands if name == "setAlarmState"}
+        assert alarm[sa11.id] == 1 and alarm[ewr.id] == 2
+        assert all(body["spawnPoints"] == 0 for name, body in fake.commands if name.startswith("spawn"))
+    finally:
+        server.shutdown()
+
+
 def test_wrong_password_is_reported(olympus):
     fake, client = olympus
     bad = OlympusClient(client.base_url, "wrong")

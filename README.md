@@ -64,5 +64,6 @@ These come from reading the Olympus v2.0.6 source, not from a live run:
 - A hot ramp start followed at once by `attackUnit`/`setPath`: whether the AI taxis and takes off.
   If not, set `fighter_spawn: air` in the scenario.
 - That contact IDs in `/units` match unit IDs (the watch loop assumes so).
+- Some Olympus builds ignore `groupName` and call groups `Olympus-<n>`. The bridge then finds each spawn as the new Red units near the spawn point.
 - Aircraft spawn altitude units (the bridge sends metres).
 - Placement can put a site on water or in a valley; there is no terrain check yet.

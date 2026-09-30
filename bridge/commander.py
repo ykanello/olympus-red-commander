@@ -89,6 +89,30 @@ class Commander:
         log.warning("Group %s did not appear in /units within %.0fs", group_name, timeout)
         return None
 
+    def _spawn_and_find(self, requested_name: str, lat: float, lng: float, send, radius_m: float = 5000.0,
+                        timeout: float = 20.0) -> str:
+        """Send a spawn and return the DCS group name it produced.
+
+        Newer Olympus versions honour groupName; older ones (e.g. v2.0.x builds) ignore it and name the group
+        "Olympus-<n>". So the new group is found by name, or else as the new units of our coalition near the spawn point.
+        """
+        # spawn_points=0 at the call sites: the bridge enforces its own budget, so Olympus's spawn restriction is not charged.
+        before = set(self.client.get_units())
+        self.client.wait_for(send(), want_result=False)
+        deadline = time.monotonic() + timeout
+        while True:
+            units = self.client.get_units()
+            if self._leader(units, requested_name):
+                return requested_name
+            new = [u for uid, u in units.items() if uid not in before and u.alive and u.group_name
+                   and u.coalition == self.scenario.coalition and geo.distance_m(lat, lng, u.lat, u.lng) <= radius_m]
+            if new:
+                return min(new, key=lambda u: geo.distance_m(lat, lng, u.lat, u.lng)).group_name
+            if time.monotonic() >= deadline:
+                log.warning("Spawned %s but could not find its units in Olympus within %.0fs", requested_name, timeout)
+                return requested_name
+            time.sleep(1.0)
+
     def _marker(self, lat: float, lng: float, text: str) -> None:
         self.marker_counter += 1
         try:
@@ -109,12 +133,10 @@ class Commander:
                 "altitude": alt_m, "loadout": loadout, "liveryID": "", "skill": rules.skill,
                 "heading": math.radians(heading_deg),
             })
-        group_name = self._group_name(name)
-        price = self.catalog[tasking_type].price * count
-        h = self.client.spawn_aircraft(group_name, units, airbase="" if air else airbase,
-                                       coalition=self.scenario.coalition, country=self.scenario.country, spawn_points=price)
-        self.client.wait_for(h)
-        return group_name
+        requested = self._group_name(name)
+        return self._spawn_and_find(requested, units[0]["location"]["lat"], units[0]["location"]["lng"], lambda: self.client.spawn_aircraft(
+            requested, units, airbase="" if air else airbase, coalition=self.scenario.coalition,
+            country=self.scenario.country, spawn_points=0))
 
     # ---------- plan execution ----------
     def execute(self, plan: Plan) -> None:
@@ -133,14 +155,14 @@ class Commander:
                     lat, lng = geo.project(g.lat, g.lng, i * 360 / g.count, UNIT_SPACING_M)
                 units.append({"unitType": g.type, "location": {"lat": lat, "lng": lng}, "heading": math.radians(g.heading_deg),
                               "liveryID": "", "skill": rules.skill})
-            group_name = self._group_name(g.name)
-            h = self.client.spawn_ground(group_name, units, coalition=self.scenario.coalition,
-                                         country=self.scenario.country, spawn_points=item.price * g.count)
-            self.client.wait_for(h)
+            requested = self._group_name(g.name)
+            group_name = self._spawn_and_find(requested, g.lat, g.lng, lambda: self.client.spawn_ground(
+                requested, units, coalition=self.scenario.coalition, country=self.scenario.country,
+                spawn_points=0))
             dark = item.cls in DARK_CLASSES and rules.keep_sams_dark_until_km is not None
             spawned = SpawnedGroup(group_name, g.type, item.cls, g.lat, g.lng, dark=dark)
             self.groups[group_name] = spawned
-            self._event("spawned", group=group_name, type=g.type, count=g.count, reason=g.reason)
+            self._event("spawned", group=group_name, name=g.name, type=g.type, count=g.count, reason=g.reason)
             self._marker(g.lat, g.lng, f"{g.name}: {g.count}x {item.label}. {g.reason}")
 
         # Group orders need the units to exist in Olympus first.

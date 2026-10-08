@@ -52,6 +52,10 @@ class SpawnedGroup:
     target_lat: float | None = None  # reserve: where its current path leads
     target_lng: float | None = None
     last_fire: float = 0.0  # artillery: wall-clock time of its last fire mission
+    label: str = ""  # the name Claude gave the group in its plan
+    route: list = field(default_factory=list)  # campaign: [lat, lng] points it drives along
+    depart_at: float = 0.0  # campaign: wall-clock time it sets off
+    status: str = ""  # campaign: waiting | moving | arrived
 
 
 @dataclass
@@ -60,6 +64,7 @@ class AlertSlot:
     airbase: str
     loadout: str
     remaining: int
+    role: str = "intercept"  # intercept (against aircraft) or cas (against ground units)
 
 
 class MissionRestarted(Exception):
@@ -92,15 +97,18 @@ class Commander:
         self.save_state()
 
     # ---------- state, so a restarted bridge resumes instead of spawning twice ----------
-    def save_state(self) -> None:
-        if not self.state_path:
-            return
-        state = {
+    def state(self) -> dict:
+        return {
             "session_hash": self.session_hash, "run_id": self.run_id, "scramble_counter": self.scramble_counter,
             "marker_counter": self.marker_counter,
             "groups": [dataclasses.asdict(g) for g in self.groups.values()],
             "alerts": [dataclasses.asdict(a) for a in self.alerts],
         }
+
+    def save_state(self) -> None:
+        if not self.state_path:
+            return
+        state = self.state()
         tmp = self.state_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(state, indent=1), encoding="utf-8")
         tmp.replace(self.state_path)
@@ -293,31 +301,40 @@ class Commander:
 
     def tick(self, units: dict[int, Unit] | None = None) -> None:
         units = self.client.get_units() if units is None else units
+        air = self.detected_enemy_air(units)
+        ground = self.detected_enemy_ground(units)
+        self._emission_control(units, air)
+        self._air_response(units, "intercept", air)
+        self._direct_reserves(units, ground)
+        if self.scenario.rules.artillery_fire:
+            self._fire_missions(units, ground)
+
+    def _emission_control(self, units: dict[int, Unit], threats: dict[int, Unit]) -> None:
+        """Wake dark SAMs when a detected aircraft closes in."""
         rules = self.scenario.rules
-        o = self.scenario.objective
-        threats = self.detected_enemy_air(units)
-
-        # 1. Emission control: wake dark SAMs when a detected aircraft closes in.
-        if rules.keep_sams_dark_until_km is not None:
-            for g in self.groups.values():
-                if not g.dark:
-                    continue
-                close = [t for t in threats.values() if geo.distance_m(g.lat, g.lng, t.lat, t.lng) <= rules.keep_sams_dark_until_km * 1000]
-                leader = self._leader(units, g.name)
-                if close and leader:
-                    self.client.set_alarm_state(leader.id, "red")
-                    g.dark = False
-                    self._event("sam_active", group=g.name, trigger=close[0].id)
-
-        # 2. Interceptors: drop dead groups, retarget those whose target is gone.
-        assigned: set[int] = set()
-        for g in list(self.groups.values()):
-            if g.role != "intercept":
+        if rules.keep_sams_dark_until_km is None:
+            return
+        for g in self.groups.values():
+            if not g.dark:
                 continue
+            close = [t for t in threats.values() if geo.distance_m(g.lat, g.lng, t.lat, t.lng) <= rules.keep_sams_dark_until_km * 1000]
             leader = self._leader(units, g.name)
+            if close and leader:
+                self.client.set_alarm_state(leader.id, "red")
+                g.dark = False
+                self._event("sam_active", group=g.name, trigger=close[0].id)
+
+    def _in_response_zone(self, threat: Unit, units: dict[int, Unit]) -> bool:
+        """Whether a detected threat is close enough to launch alert aircraft against it."""
+        o = self.scenario.objective
+        return geo.distance_m(o.lat, o.lng, threat.lat, threat.lng) <= self.scenario.rules.scramble_when_contact_within_km * 1000
+
+    def _air_response(self, units: dict[int, Unit], role: str, threats: dict[int, Unit]) -> None:
+        """Alert aircraft of one role: drop dead groups, retarget those whose target is gone, scramble against the rest."""
+        assigned: set[int] = set()
+        for g in [g for g in self.groups.values() if g.role == role]:
+            leader = self._live_leader(units, g)
             if leader is None:
-                self._event("group_lost", group=g.name)
-                del self.groups[g.name]
                 continue
             if g.target_id in threats:
                 assigned.add(g.target_id)
@@ -330,22 +347,15 @@ class Commander:
                 assigned.add(target.id)
                 self._event("retask", group=g.name, target=target.id)
 
-        # 3. Scramble against unassigned threats inside the scramble ring.
-        ring_m = rules.scramble_when_contact_within_km * 1000
+        o = self.scenario.objective
         for t in sorted(threats.values(), key=lambda t: geo.distance_m(o.lat, o.lng, t.lat, t.lng)):
-            if t.id in assigned or geo.distance_m(o.lat, o.lng, t.lat, t.lng) > ring_m:
+            if t.id in assigned or not self._in_response_zone(t, units):
                 continue
-            slot = self._pick_alert(t)
+            slot = self._pick_alert(t, role)
             if slot is None:
                 break
             self._scramble(slot, t)
             assigned.add(t.id)
-
-        # 4. Ground war: reserves and artillery against detected enemy ground units.
-        ground = self.detected_enemy_ground(units)
-        self._direct_reserves(units, ground)
-        if rules.artillery_fire:
-            self._fire_missions(units, ground)
 
     def _drive(self, leader: Unit, g: SpawnedGroup, target: Unit) -> None:
         self.client.set_path(leader.id, [(target.lat, target.lng)])
@@ -402,7 +412,7 @@ class Commander:
         fired_at: set[int] = set()
         for g in [g for g in self.groups.values() if g.role == "artillery"]:
             leader = self._live_leader(units, g)
-            if leader is None or now - g.last_fire < rules.fire_mission_every_s:
+            if leader is None or g.status == "moving" or now - g.last_fire < rules.fire_mission_every_s:
                 continue
             reach_m = self.catalog[g.type].engagement_range_m if g.type in self.catalog else 0
             in_range = [t for t in safe if geo.distance_m(leader.lat, leader.lng, t.lat, t.lng) <= reach_m]
@@ -416,8 +426,8 @@ class Commander:
             self._event("fire_mission", group=g.name, target=target.id, target_type=target.name,
                         range_km=round(geo.distance_m(leader.lat, leader.lng, target.lat, target.lng) / 1000, 1))
 
-    def _pick_alert(self, target: Unit) -> AlertSlot | None:
-        ready = [s for s in self.alerts if s.remaining > 0]
+    def _pick_alert(self, target: Unit, role: str = "intercept") -> AlertSlot | None:
+        ready = [s for s in self.alerts if s.remaining > 0 and s.role == role]
         if not ready:
             return None
         return min(ready, key=lambda s: geo.distance_m(*self.red_airbases[s.airbase], target.lat, target.lng))
@@ -427,13 +437,15 @@ class Commander:
         slot.remaining -= count
         self.scramble_counter += 1
         heading = geo.bearing_deg(*self.red_airbases[slot.airbase], target.lat, target.lng)
-        group_name = self._spawn_fighters(f"INT{self.scramble_counter}-{slot.airbase}", slot.type, slot.loadout, slot.airbase, count, heading)
-        self.groups[group_name] = SpawnedGroup(group_name, slot.type, "fighter", *self.red_airbases[slot.airbase], role="intercept", target_id=target.id)
+        prefix = "CAS" if slot.role == "cas" else "INT"
+        group_name = self._spawn_fighters(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, slot.loadout, slot.airbase, count, heading)
+        cls = self.catalog[slot.type].cls if slot.type in self.catalog else "fighter"
+        self.groups[group_name] = SpawnedGroup(group_name, slot.type, cls, *self.red_airbases[slot.airbase], role=slot.role, target_id=target.id)
         leader = self._wait_for_group(group_name)
         if leader:
             self.client.set_roe(leader.id, "free")
             self.client.attack_unit(leader.id, target.id)
-        self._event("scramble", group=group_name, type=slot.type, count=count, airbase=slot.airbase, target=target.id,
+        self._event("scramble", group=group_name, role=slot.role, type=slot.type, count=count, airbase=slot.airbase, target=target.id,
                     left_on_alert=slot.remaining)
 
     def check_session(self) -> None:

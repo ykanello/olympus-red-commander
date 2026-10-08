@@ -55,6 +55,20 @@ class Rules:
 
 
 @dataclass
+class Campaign:
+    """Offensive mode: Red starts at its HQ and must take the objective (the target zone) with ground forces."""
+    hq: str  # Red airbase that all Red aircraft fly from
+    staging_name: str = ""
+    staging_lat: float | None = None  # where ground forces spawn and form up; empty: next to the HQ airbase
+    staging_lng: float | None = None
+    hold_minutes: float = 10  # Red takes the target by holding it this long with no Blue ground units inside
+    replan_minutes: float = 10  # Claude reviews the situation this often, and after big events
+    min_replan_gap_minutes: float = 2  # but never more often than this
+    protect_radius_km: float = 25  # alert aircraft launch against threats this close to Red ground forces
+    max_group_units: int = 12  # vehicles per convoy or battery
+
+
+@dataclass
 class Scenario:
     name: str
     objective: Objective
@@ -65,6 +79,7 @@ class Scenario:
     inventory: list[InventoryEntry] = field(default_factory=list)
     catalog: CatalogOptions | None = None
     rules: Rules = field(default_factory=Rules)
+    campaign: Campaign | None = None
 
     @property
     def mode(self) -> str:
@@ -89,6 +104,16 @@ def load_scenario(path: str | Path) -> Scenario:
     if not inventory and raw.get("budget_points") is None:
         raise ValueError("A catalog scenario needs budget_points")
 
+    campaign = None
+    if raw.get("campaign"):
+        c = dict(raw["campaign"])
+        staging = c.pop("staging", None) or {}
+        if not c.get("hq"):
+            raise ValueError("campaign.hq must name the Red airbase the campaign is run from")
+        campaign = Campaign(staging_name=staging.get("name", ""), staging_lat=staging.get("lat"), staging_lng=staging.get("lng"), **c)
+        if inventory or raw.get("budget_points") is None:
+            raise ValueError("A campaign scenario buys its forces: give budget_points and no inventory")
+
     scenario = Scenario(
         name=raw.get("scenario", Path(path).stem),
         coalition=raw.get("coalition", "red"),
@@ -106,6 +131,7 @@ def load_scenario(path: str | Path) -> Scenario:
         inventory=inventory,
         catalog=CatalogOptions(**catalog_raw) if catalog_raw is not None else None,
         rules=Rules(**(raw.get("rules") or {})),
+        campaign=campaign,
     )
     if scenario.rules.fighter_spawn not in ("ramp", "air"):
         raise ValueError("rules.fighter_spawn must be 'ramp' or 'air'")

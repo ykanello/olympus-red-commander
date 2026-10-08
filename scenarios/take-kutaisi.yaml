@@ -1,0 +1,41 @@
+# Offensive campaign: Red runs the war from Sochi and must take Kutaisi with ground forces.
+# Claude buys a combined-arms force from the menu, plans the opening, then reviews the situation every
+# replan_minutes (and after big events) and gives new orders or buys reinforcements with the points left.
+scenario: take-kutaisi
+coalition: red
+era: [Late Cold War, Modern]
+
+campaign:
+  hq: Sochi-Adler                # Red airbase all Red aircraft fly from (its name as Olympus shows it)
+  staging:                       # where ground forces spawn; leave out to spawn next to the HQ airbase
+    name: Gali
+    lat: 42.627
+    lng: 41.735
+  hold_minutes: 10               # Red wins by holding the target this long with no Blue ground units inside
+  replan_minutes: 10             # Claude reviews this often...
+  min_replan_gap_minutes: 2      # ...and after big events, but never more often than this
+  protect_radius_km: 25          # alert fighters and ground attack launch against threats this close to Red ground forces
+  max_group_units: 12            # vehicles per convoy or battery
+
+objective:                       # the target zone
+  name: Kutaisi
+  location: { lat: 42.176, lng: 42.482 }
+  radius_m: 3000
+
+budget_points: 800
+
+catalog:
+  classes: null                  # everything Red has in the Olympus database (fixed SAM batteries are left out, they cannot move)
+  exclude: []
+  price_overrides: {}
+  class_prices: {}
+
+rules:
+  skill: High
+  scramble_when_contact_within_km: 60   # alert aircraft also launch against threats this close to the target
+  scramble_pair_size: 2
+  fighter_spawn: ramp
+  artillery_fire: true
+  fire_mission_every_s: 90
+  no_fire_near_friendly_m: 500
+  keep_sams_dark_until_km: null

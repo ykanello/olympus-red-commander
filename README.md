@@ -51,12 +51,50 @@ schtasks /create /tn "Red Commander" /sc onlogon /tr "\"C:\Users\Hawk\olympus-re
 Everything the console shows also goes to `logs/bridge-<date>.log`. For a task started at logon, set the API key with
 `setx` (not `$env:`), so it is there for every new window.
 
+## Offensive campaign
+
+`scenarios/take-kutaisi.yaml` turns things around: Red runs the war from its HQ airbase (Sochi-Adler) and must take
+the target zone (Kutaisi) with ground forces, while you fly and drive Blue.
+
+```
+python -m bridge plan scenarios/take-kutaisi.yaml   # the opening plan, printed; spawns nothing
+python -m bridge run  scenarios/take-kutaisi.yaml   # spawn it, fight it, and let Claude review as it goes
+python -m bridge run  scenarios/take-kutaisi.yaml --no-reviews   # opening plan only, no Claude calls after the start
+```
+
+- **Where things start.** `campaign.hq` is the Red airbase all Red aircraft fly from. `campaign.staging` is where ground
+  forces spawn and form up; leave it out to use the HQ. Sochi to Kutaisi is a long drive for a DCS convoy, so the
+  example stages at Gali.
+- **The opening plan.** Claude buys from the menu within `budget_points` (leave `catalog.classes` empty for everything
+  Red has; fixed SAM batteries are left out because they cannot move) and returns:
+  - convoys: up to `max_group_units` vehicles of mixed types each, with a road route and a departure time. A convoy
+    with no route waits at the staging area as a reserve;
+  - artillery batteries, each driving to a firing position and then firing on detected Blue ground units in range;
+  - aircraft from the HQ: `sweep` (flies its route at the start), `intercept` (alert pairs against detected aircraft) and
+    `cas` (alert pairs of ground-attack aircraft, such as the Su-25, against detected ground units). Alert pairs launch
+    against threats within `protect_radius_km` of Red ground forces, or within `scramble_when_contact_within_km` of the target.
+- **Reviews.** Every `replan_minutes`, and after big events (a group lost, a group arriving, the hold starting or
+  breaking), Claude gets a situation report: its own groups, the Blue units Red detects, recent events, points left.
+  It answers with orders for existing ground groups (`move` with a new route, `hold`, `return` to staging) and any
+  reinforcements bought with the points left. The review runs in the background, so the fight carries on meanwhile.
+  Reviews are never closer together than `min_replan_gap_minutes`.
+- **Winning.** Red takes the target when its ground units have held the zone (`objective.radius_m`) for `hold_minutes`
+  with no Blue ground units inside. Red loses when its ground force is gone and the points left cannot buy a vehicle.
+  The referee that decides this sees everything; Red's own decisions only ever use what Red detects.
+
+Every step goes to the events log: `spawned`, `depart`, `arrived`, `scramble` (with `role: cas` for ground attack),
+`fire_mission`, `review` (Claude's assessment), `order`, `hold_started`, `hold_broken`, `target_taken`, `campaign_lost`.
+
 ## Scenario files
 
 - `scenarios/defend-kutaisi.yaml`: an exact inventory. Claude decides only where things go and what the fighters do.
 - `scenarios/defend-kutaisi-budget.yaml`: a priced menu and `budget_points`. Claude buys and places.
 - `scenarios/defend-kutaisi-combined.yaml`: the same, with tanks, APCs and artillery on the menu as well.
   Claude decides how much of the budget goes to the ground threat.
+- `scenarios/take-kutaisi.yaml`: the offensive campaign described above.
+
+Without an `inventory`, the menu is built from the Olympus unit databases on your server: every enabled Red unit of the
+listed `era`, narrowed by `catalog.classes` if you give them.
 
 Unit types use Olympus database names (`python -m bridge catalog ...` lists them). Prices come from
 `DEFAULT_CLASS_PRICES` in `bridge/catalog.py`; override per class (`class_prices`) or per unit
@@ -104,6 +142,10 @@ formats. No DCS and no Anthropic API key needed.
 - Some Olympus builds ignore `groupName` and call groups `Olympus-<n>`. The bridge then finds each spawn as the new Red units near the spawn point.
 
 ## Not yet verified
+
+- The campaign has only run against the fake Olympus. Worth checking in DCS: that convoys sent with `setPath` and
+  `setFollowRoads` find the roads from the staging area, how long the drive takes, and that the `cas` pairs
+  (ramp start, then `attackUnit`) find their ground targets.
 
 - Ground forces: reserves (`setPath`) and fire missions (`fireAtArea`) have only run against the fake Olympus.
   Worth checking in DCS: how far Red ground units actually detect Blue vehicles, whether a reserve sent with

@@ -323,6 +323,9 @@ class OlympusClient:
     def set_path(self, unit_id: int, points: list[tuple[float, float]]) -> None:
         self.send("setPath", {"ID": unit_id, "path": [{"lat": lat, "lng": lng} for lat, lng in points]})
 
+    def set_follow_roads(self, unit_id: int, follow: bool) -> None:
+        self.send("setFollowRoads", {"ID": unit_id, "followRoads": follow})
+
     def set_altitude(self, unit_id: int, altitude_m: float) -> None:
         self.send("setAltitude", {"ID": unit_id, "altitude": altitude_m})
 

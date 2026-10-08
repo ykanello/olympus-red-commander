@@ -87,7 +87,8 @@ def test_catalog_filters_to_red_era_and_spawnable():
     assert "SA-5 SAM Battery" not in c  # Mid Cold War, and Olympus has no template for it
     assert "CHAP_TorM2" not in c  # mod unit, excluded by default
     assert c["MiG-29S"].cls == "fighter" and c["MiG-29S"].a2a_loadouts
-    assert "F-15C" not in c and "Su-25T" not in c  # blue, and no air-to-air loadout
+    assert "F-15C" not in c  # blue
+    assert c["Su-25T"].cls == "attack" and not c["Su-25T"].a2a_loadouts and "RBK-500AO*4,UB-32*2,R-60M*2,Fuel*2" in c["Su-25T"].ground_attack_loadouts
 
 
 def test_price_overrides():

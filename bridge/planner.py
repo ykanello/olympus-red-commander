@@ -16,7 +16,7 @@ from .scenario import Scenario
 
 log = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are the Red air-defence commander in a DCS World mission. You plan; the DCS AI fights.
+SYSTEM_PROMPT = """You are the Red commander defending an objective in a DCS World mission. You plan; the DCS AI fights.
 
 You receive an objective to protect, the Red airbases nearby, the rules, and either an exact inventory to place or a priced menu and a points budget. Return one defence plan.
 
@@ -28,7 +28,13 @@ How your plan is used:
 - Fighters with role "sweep" launch at start, fly the sweep route with weapons free, then orbit at the last waypoint.
 - Red only knows what its own sensors detect. Do not assume enemy positions beyond the threat axis you are given.
 
-Choosing units: when two types do the same job, take the cheaper one unless the threat justifies more, and say why in that entry's reason. In a budget scenario you do not have to spend everything; unspent points are fine. Layer the defence: long or medium range coverage, short-range systems protecting those sites and the objective, early warning, then fighters.
+Ground forces, when the menu or inventory has them:
+- Tanks and APCs with role "position" hold their spot and fight whatever comes into range. Use them to block the approaches along the threat axis and to keep enemy ground forces off SAM sites and the objective.
+- Tanks and APCs with role "reserve" wait at their spot. When a Red unit detects an enemy ground group within reserve_react_within_km of the objective, the nearest free reserve drives to it and engages, then returns when the contact is gone. Place reserves central, behind the blocking positions, so they reach any approach.
+- Artillery (classes artillery and mlrs) fires on detected enemy ground units within its engagement range, but never on a target close to Red ground units. Place it behind the front so its range covers the approaches.
+- Early-warning radars do not see vehicles. Enemy ground units are only detected by Red ground units nearby, so reserves and artillery depend on forward positions along the threat axis to act as their eyes.
+
+Choosing units: when two types do the same job, take the cheaper one unless the threat justifies more, and say why in that entry's reason. In a budget scenario you do not have to spend everything; unspent points are fine. Layer the defence: long or medium range coverage, short-range systems protecting those sites and the objective, early warning, then fighters. If ground forces are offered, decide from the threat axis and the objective how much of the budget the ground threat deserves.
 
 Keep every reason to one line. Pick loadouts only from the air_to_air_loadouts listed for that type."""
 
@@ -63,6 +69,8 @@ def build_brief(scenario: Scenario, catalog: Catalog, red_airbases: dict[str, tu
             "keep_sams_dark_until_km": scenario.rules.keep_sams_dark_until_km,
             "scramble_when_contact_within_km": scenario.rules.scramble_when_contact_within_km,
             "sweep_altitude_ft": scenario.rules.sweep_altitude_ft,
+            "reserve_react_within_km": scenario.rules.reserve_react_within_km,
+            "artillery_fires_on_detected_ground_units": scenario.rules.artillery_fire,
         },
         "red_airbases_within_250km": bases,
         "mode": scenario.mode,

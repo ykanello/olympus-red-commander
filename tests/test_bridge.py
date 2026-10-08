@@ -279,3 +279,131 @@ def test_watch_loop_survives_olympus_dropping_out_and_spots_a_mission_restart(sc
     fake.session_hash = "SESSION2"
     with pytest.raises(MissionRestarted):
         cmd.run(stop_after_s=2)
+
+
+# ---------- ground forces: reserves and artillery ----------
+
+@pytest.fixture
+def combined_scenario():
+    return load_scenario(ROOT / "scenarios/defend-kutaisi-combined.yaml")
+
+
+@pytest.fixture
+def combined_catalog(combined_scenario):
+    return Catalog.load(OLYMPUS_DIR, eras=combined_scenario.eras, classes=combined_scenario.catalog.classes)
+
+
+def ground_plan():
+    group = lambda name, type_, count, bearing, dist, role, reason: {
+        "name": name, "type": type_, "count": count, "bearing_deg": bearing, "distance_km": dist,
+        "heading_deg": 240, "role": role, "reason": reason}
+    return {
+        "summary": "Forward BMPs watch the approach, T-72s wait in reserve, Msta and Uragan cover the axis.",
+        "ground_groups": [
+            group("Screen", "BMP-2", 2, 240, 20, "position", "Eyes on the approach"),
+            group("Reserve", "T-72B", 4, 240, 5, "reserve", "Counter-attack force"),
+            group("Msta", "SAU Msta", 2, 60, 3, "position", "Covers the axis to 20 km"),
+            group("Uragan", "Uragan_BM-27", 1, 60, 10, "position", "Deep fires"),
+        ],
+        "fighters": [],
+    }
+
+
+def test_catalog_classes_ground_forces(combined_catalog):
+    assert combined_catalog["BMP-2"].cls == "apc" and combined_catalog["BMP-2"].price == 6
+    assert combined_catalog["SAU Msta"].cls == "artillery" and combined_catalog["SAU Msta"].price == 10
+    assert combined_catalog["Uragan_BM-27"].cls == "mlrs" and combined_catalog["Uragan_BM-27"].price == 25
+
+
+def test_only_armour_can_be_a_reserve(combined_scenario, combined_catalog):
+    data = ground_plan()
+    data["ground_groups"][2]["role"] = "reserve"
+    errors, _ = validate(Plan.from_json(data), combined_scenario, combined_catalog, RED_BASES)
+    assert any("Msta: only tanks and APCs can be a reserve" in e for e in errors)
+    data["ground_groups"][2]["role"] = "position"
+    assert validate(Plan.from_json(data), combined_scenario, combined_catalog, RED_BASES)[0] == []
+
+
+def test_schema_and_brief_carry_ground_roles(combined_scenario, combined_catalog):
+    from bridge.plan import json_schema
+    schema = json_schema(combined_scenario, combined_catalog, sorted(RED_BASES))
+    ground = schema["properties"]["ground_groups"]["items"]
+    assert "role" in ground["required"] and ground["properties"]["role"]["enum"] == ["position", "reserve"]
+    brief = build_brief(combined_scenario, combined_catalog, RED_BASES)
+    assert brief["rules"]["reserve_react_within_km"] == 30
+    assert {"apc", "artillery", "mlrs", "tank_modern"} <= {card["class"] for card in brief["menu"]}
+
+
+def test_reserve_and_artillery_react_to_detected_ground_units(combined_scenario, combined_catalog, olympus, tmp_path):
+    fake, client = olympus
+    plan, _ = StaticPlanner(ground_plan()).plan(combined_scenario, combined_catalog, RED_BASES)
+    cmd = Commander(client, combined_scenario, combined_catalog, RED_BASES, run_id="T", event_log=tmp_path / "e.jsonl")
+    cmd.execute(plan)
+    roles = {g.name: g.role for g in cmd.groups.values()}
+    assert roles == {"RED-T-Screen": "ground", "RED-T-Reserve": "reserve", "RED-T-Msta": "artillery", "RED-T-Uragan": "artillery"}
+    screen = next(u for u in fake.units.values() if u.group_name == "RED-T-Screen")
+    reserve = next(u for u in fake.units.values() if u.group_name == "RED-T-Reserve" and u.is_leader)
+    msta = next(u for u in fake.units.values() if u.group_name == "RED-T-Msta" and u.is_leader)
+    uragan = next(u for u in fake.units.values() if u.group_name == "RED-T-Uragan")
+
+    # Two Blue tanks 25 km out on the axis, 5 km beyond the screen. Not detected yet: nothing moves.
+    t1 = fake.add(category="GroundUnit", coalition=2, name="M-1 Abrams", group_name="Blue-Armor", lat=0, lng=0)
+    t2 = fake.add(category="GroundUnit", coalition=2, name="M-1 Abrams", group_name="Blue-Armor", lat=0, lng=0)
+    t1.lat, t1.lng = geo.project(*KUTAISI, 240, 25_000)
+    t2.lat, t2.lng = geo.project(t1.lat, t1.lng, 0, 100)
+    fake.commands.clear()
+    cmd.tick()
+    assert "setPath" not in fake.names_sent() and "fireAtArea" not in fake.names_sent()
+
+    # The screen sees them: the reserve drives at them, the Uragan fires (37 km); the Msta (23.5 km) is out of range.
+    screen.contacts = [t1.id, t2.id]
+    cmd.tick()
+    paths = [body for name, body in fake.commands if name == "setPath"]
+    assert [p["ID"] for p in paths] == [reserve.id]
+    assert geo.distance_m(paths[0]["path"][0]["lat"], paths[0]["path"][0]["lng"], t1.lat, t1.lng) < 150
+    fires = [body for name, body in fake.commands if name == "fireAtArea"]
+    assert [f["ID"] for f in fires] == [uragan.id]
+
+    # They push on to 18 km: the reserve is re-routed; the Uragan waits for its next mission; the Msta now fires.
+    fake.commands.clear()
+    for t in (t1, t2):
+        t.lat, t.lng = geo.project(t.lat, t.lng, 60, 7_000)
+    cmd.tick()
+    assert [body["ID"] for name, body in fake.commands if name == "setPath"] == [reserve.id]
+    assert [body["ID"] for name, body in fake.commands if name == "fireAtArea"] == [msta.id]
+
+    # Blue reaches the screen: too close to friendly vehicles, no more fire on it even once batteries are ready.
+    for g in cmd.groups.values():
+        g.last_fire = 0.0
+    t1.lat, t1.lng = geo.project(screen.lat, screen.lng, 240, 200)
+    t2.alive = False
+    fake.commands.clear()
+    cmd.tick()
+    assert "fireAtArea" not in fake.names_sent()
+
+    # Blue group destroyed: the reserve goes back to its position.
+    t1.alive = False
+    fake.commands.clear()
+    cmd.tick()
+    back = [body for name, body in fake.commands if name == "setPath"]
+    home = cmd.groups["RED-T-Reserve"]
+    assert len(back) == 1 and geo.distance_m(back[0]["path"][0]["lat"], back[0]["path"][0]["lng"], home.lat, home.lng) < 1
+
+    events = [json.loads(l)["event"] for l in (tmp_path / "e.jsonl").read_text().splitlines()]
+    assert events.count("reserve_sent") == 1 and events.count("fire_mission") == 2 and events.count("reserve_return") == 1
+
+
+def test_reserve_ignores_ground_contacts_outside_its_ring(combined_scenario, combined_catalog, olympus, tmp_path):
+    fake, client = olympus
+    data = ground_plan()
+    data["ground_groups"] = data["ground_groups"][:2]
+    plan, _ = StaticPlanner(data).plan(combined_scenario, combined_catalog, RED_BASES)
+    cmd = Commander(client, combined_scenario, combined_catalog, RED_BASES, run_id="T")
+    cmd.execute(plan)
+    screen = next(u for u in fake.units.values() if u.group_name == "RED-T-Screen")
+    lat, lng = geo.project(*KUTAISI, 240, 40_000)
+    far = fake.add(category="GroundUnit", coalition=2, name="M-1 Abrams", group_name="Blue-Far", lat=lat, lng=lng)
+    screen.contacts = [far.id]
+    fake.commands.clear()
+    cmd.tick()
+    assert "setPath" not in fake.names_sent()

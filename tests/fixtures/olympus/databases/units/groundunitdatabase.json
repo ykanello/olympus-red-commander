@@ -4341,5 +4341,511 @@
   "acquisitionRange": 32000,
   "engagementRange": 16000,
   "description": "The Tor M2 is a Russian self-propelled anti-aircraft missile system designed to provide short-range air defense against a variety of aerial threats, including aircraft, helicopters, drones, and precision-guided munitions. The system is mounted on a tracked chassis, providing mobility and the ability to operate in various terrains. The Tor M2 is equipped with advanced radar and electro-optical tracking systems, allowing it to detect and engage multiple targets simultaneously. It uses 9M331 missiles, which are highly maneuverable and capable of intercepting fast-moving targets. The Tor M2 is widely used by the Russian military and has been exported to several other countries."
+ },
+ "BMP-2": {
+  "name": "BMP-2",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "BMP-2",
+  "shortLabel": "BMP-2",
+  "filename": "",
+  "type": "APC",
+  "enabled": true,
+  "liveries": {
+   "grg_summer": {
+    "name": "GRG_Summer",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "ukr_winter": {
+    "name": "UKR_Winter",
+    "countries": "All"
+   },
+   "grg_spring": {
+    "name": "GRG_Spring",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "ukr_autumn": {
+    "name": "UKR_Autumn",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "grg_winter": {
+    "name": "GRG_Winter",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "ukr_spring": {
+    "name": "UKR_Spring",
+    "countries": "All"
+   },
+   "grg_autumn": {
+    "name": "GRG_Autumn",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   },
+   "ukr_summer": {
+    "name": "UKR_Summer",
+    "countries": "All"
+   }
+  },
+  "barrelHeight": 1.95,
+  "muzzleVelocity": 950,
+  "acquisitionRange": 3500,
+  "engagementRange": 1000,
+  "description": "BMP-2 IFV. Tracked. Amphibious. 30 mm gun, AT-5 Spandrel wire guided missile.",
+  "abilities": "Combined arms, Amphibious, Transport, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "aimTime": 6,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-apc",
+  "targetingRange": 100,
+  "aimMethodRange": 3000,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5,
+  "indirectFire": false,
+  "canAAA": true
+ },
+ "BMP-3": {
+  "name": "BMP-3",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "BMP-3",
+  "shortLabel": "BMP-3",
+  "filename": "",
+  "type": "APC",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 5000,
+  "engagementRange": 1000,
+  "description": "BMP-2 IFV. Tracked. Amphibious. 100 mm gun. 30 mm gun, AT-10 Stabber wire guided missile.",
+  "abilities": "Combined arms, Amphibious, Transport, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 2.3,
+  "muzzleVelocity": 1080,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-apc",
+  "targetingRange": 100,
+  "aimMethodRange": 3000,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
+ },
+ "BTR-80": {
+  "name": "BTR-80",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "BTR-80",
+  "shortLabel": "BTR-80",
+  "filename": "",
+  "type": "APC",
+  "enabled": true,
+  "liveries": {
+   "green winter": {
+    "name": "Green_Winter",
+    "countries": "All"
+   },
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "light green autumn": {
+    "name": "Light Green Autumn",
+    "countries": "All"
+   },
+   "military police spring": {
+    "name": "Military Police Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "light green spring": {
+    "name": "Light Green Spring",
+    "countries": "All"
+   },
+   "light green summer": {
+    "name": "Light_Green_Summer",
+    "countries": "All"
+   },
+   "light green winter": {
+    "name": "Light Green Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "military police summer": {
+    "name": "Military Police Summer",
+    "countries": "All"
+   },
+   "military police winter": {
+    "name": "Military Police Winter",
+    "countries": "All"
+   },
+   "military police autumn": {
+    "name": "Military Police Autumn",
+    "countries": "All"
+   },
+   "green autumn": {
+    "name": "Green_Autumn",
+    "countries": "All"
+   },
+   "green spring": {
+    "name": "Green_Spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "green summer": {
+    "name": "Green_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 2500,
+  "engagementRange": 300,
+  "description": "BTR 80 APC. Wheeled. Amphibious. 14.5 mm gun and 7.62 mm coax.",
+  "abilities": "Combined arms, Amphibious, Transport, AA",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 2.2,
+  "muzzleVelocity": 900,
+  "aimTime": 6,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-apc",
+  "targetingRange": 100,
+  "aimMethodRange": 2000,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5,
+  "canAAA": true
+ },
+ "SAU Msta": {
+  "name": "SAU Msta",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "SAU Msta",
+  "shortLabel": "SAU Msta",
+  "filename": "",
+  "type": "Artillery",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 23500,
+  "description": "2S19 Msta. Tracked. 152.4mm howitzer. 1km min range, 24km max.",
+  "abilities": "Combined arms, Indirect fire",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "tags": "152mm, CA",
+  "markerFile": "groundunit-artillery",
+  "indirectFire": true,
+  "aimTime": 120,
+  "shotsToFire": 2,
+  "shotsBaseInterval": 30,
+  "shotsBaseScatter": 15,
+  "alertnessTimeConstant": 10
+ },
+ "Uragan_BM-27": {
+  "name": "Uragan_BM-27",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "Bm-27 Uragan",
+  "shortLabel": "Uragan",
+  "filename": "",
+  "type": "Artillery",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "rus_autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "ukr_winter": {
+    "name": "UKR_Winter",
+    "countries": "All"
+   },
+   "rus_spring": {
+    "name": "RUS_Spring",
+    "countries": "All"
+   },
+   "ukr_autumn": {
+    "name": "UKR_Autumn",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "rus_winter": {
+    "name": "RUS_Winter",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "RUS_Autumn",
+    "countries": "All"
+   },
+   "ukr_spring": {
+    "name": "UKR_Spring",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   },
+   "rus_summer": {
+    "name": "RUS_Summer",
+    "countries": "All"
+   },
+   "ukr_summer": {
+    "name": "UKR_Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 0,
+  "engagementRange": 37000,
+  "description": "Uragan BM-27. Wheeled. 220 mm rocket artillery. 11km min range, 37 km max.",
+  "abilities": "Combined arms, Indirect fire",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "tags": "220mm, Rocket, CA",
+  "markerFile": "groundunit-artillery",
+  "indirectFire": true,
+  "aimTime": 120,
+  "shotsToFire": 2,
+  "shotsBaseInterval": 30,
+  "shotsBaseScatter": 15,
+  "alertnessTimeConstant": 10
+ },
+ "2B11 mortar": {
+  "name": "2B11 mortar",
+  "coalition": "red",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "2B11 mortar",
+  "shortLabel": "2B11 mortar",
+  "filename": "",
+  "type": "Artillery",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 7000,
+  "engagementRange": 7000,
+  "description": "120mm mortar. Fixed. 30m min range, 7km max.",
+  "abilities": "Indirect Fire",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 1,
+  "muzzleVelocity": 325,
+  "aimTime": 300,
+  "shotsToFire": 2,
+  "markerFile": "groundunit-artillery",
+  "tags": "120mm",
+  "indirectFire": true,
+  "shotsBaseInterval": 10,
+  "shotsBaseScatter": 15,
+  "alertnessTimeConstant": 10
+ },
+ "M-2 Bradley": {
+  "name": "M-2 Bradley",
+  "coalition": "blue",
+  "era": "Late Cold War",
+  "category": "groundunit",
+  "label": "M-2A2 Bradley IFV",
+  "shortLabel": "M-2 Bradley",
+  "filename": "",
+  "type": "APC",
+  "enabled": true,
+  "liveries": {
+   "spring": {
+    "name": "Spring",
+    "countries": "All"
+   },
+   "winter": {
+    "name": "Winter",
+    "countries": "All"
+   },
+   "desert": {
+    "name": "Desert",
+    "countries": "All"
+   },
+   "autumn": {
+    "name": "Autumn",
+    "countries": "All"
+   },
+   "summer": {
+    "name": "Summer",
+    "countries": "All"
+   }
+  },
+  "acquisitionRange": 4000,
+  "engagementRange": 1000,
+  "description": "M-2A2 Bradley Infantry fighting vehicle. Tracked. Amphibious.  25 mm gun, 7.62 mm machine gun, BGM-71 TOW missile.",
+  "abilities": "Combined arms, Transport, Amphibious",
+  "canTargetPoint": true,
+  "canRearm": false,
+  "barrelHeight": 2.44,
+  "muzzleVelocity": 1000,
+  "aimTime": 5,
+  "shotsToFire": 5,
+  "tags": "CA",
+  "markerFile": "groundunit-apc",
+  "targetingRange": 100,
+  "aimMethodRange": 3800,
+  "shotsBaseInterval": 5,
+  "shotsBaseScatter": 5,
+  "alertnessTimeConstant": 5
  }
 }

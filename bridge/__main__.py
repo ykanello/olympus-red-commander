@@ -81,7 +81,8 @@ def red_airbases(client: OlympusClient, coalition: str) -> dict[str, tuple[float
 def print_plan(plan: Plan, catalog: Catalog, warnings: list[str]) -> None:
     print(f"\n{plan.summary}\n")
     for g in plan.ground_groups:
-        print(f"  {g.name:<18} {g.count}x {g.type:<22} {g.bearing_deg:>5.0f}° {g.distance_km:>5.1f} km  {g.reason}")
+        tag = " [reserve]" if g.role == "reserve" else ""
+        print(f"  {g.name:<18} {g.count}x {g.type:<22} {g.bearing_deg:>5.0f}° {g.distance_km:>5.1f} km  {g.reason}{tag}")
     for f in plan.fighters:
         print(f"  {f.role:<18} {f.count}x {f.type:<22} at {f.airbase}  {f.reason}")
     print(f"\n  Cost: {plan.cost(catalog)} points")

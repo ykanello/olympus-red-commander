@@ -3,7 +3,9 @@
 The loop is deterministic and makes no Claude calls:
 - SAM sites kept dark (alarm state green) go active when a detected enemy aircraft comes close.
 - A detected enemy aircraft inside the scramble distance gets an alert pair launched against it.
-Red only acts on enemy aircraft that at least one Red unit currently detects.
+- A detected enemy ground group near the objective draws the nearest free ground reserve, which drives to it.
+- Artillery fires on detected enemy ground units within its range, unless Red ground units are close to them.
+Red only acts on enemy units that at least one Red unit currently detects.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from pathlib import Path
 import requests
 
 from . import geo, terrain
-from .catalog import Catalog
+from .catalog import ARTILLERY_CLASSES, Catalog
 from .olympus import OlympusClient, Unit
 from .plan import FighterTasking, Plan
 from .scenario import Scenario
@@ -28,9 +30,12 @@ log = logging.getLogger(__name__)
 
 FT = 0.3048
 AIR_CATEGORIES = ("Aircraft", "Helicopter")
+GROUND_CATEGORIES = ("GroundUnit",)
 DARK_CLASSES = {"sam_long", "sam_medium"}  # radar SAMs that emission control applies to
 POINT_DEFENCE_MAX_RANGE_M = 15_000  # SAMs reaching no further than this (Tor) stay on, to shoot down ARMs
 UNIT_SPACING_M = 80
+REPATH_M = 500  # a reserve gets a new path when its target has moved this far
+RESERVE_LEASH = 1.5  # a reserve breaks off when its target is this many reaction radii from the objective
 
 
 @dataclass
@@ -40,9 +45,13 @@ class SpawnedGroup:
     cls: str
     lat: float
     lng: float
-    role: str = "ground"  # ground | sweep | intercept
+    role: str = "ground"  # ground | reserve | artillery | sweep | intercept
     target_id: int | None = None
     dark: bool = False
+    target_group: str | None = None  # reserve: the enemy group it is sent against
+    target_lat: float | None = None  # reserve: where its current path leads
+    target_lng: float | None = None
+    last_fire: float = 0.0  # artillery: wall-clock time of its last fire mission
 
 
 @dataclass
@@ -222,10 +231,12 @@ class Commander:
                 spawn_points=0))
             dark = (item.cls in DARK_CLASSES and item.engagement_range_m > POINT_DEFENCE_MAX_RANGE_M
                     and rules.keep_sams_dark_until_km is not None)
-            spawned = SpawnedGroup(group_name, g.type, item.cls, g.lat, g.lng, dark=dark)
+            role = "reserve" if g.role == "reserve" else "artillery" if item.cls in ARTILLERY_CLASSES else "ground"
+            spawned = SpawnedGroup(group_name, g.type, item.cls, g.lat, g.lng, role=role, dark=dark)
             self.groups[group_name] = spawned
-            self._event("spawned", group=group_name, name=g.name, type=g.type, count=g.count, reason=g.reason)
-            self._marker(g.lat, g.lng, f"{g.name}: {g.count}x {item.label}. {g.reason}")
+            self._event("spawned", group=group_name, name=g.name, type=g.type, count=g.count, role=role, reason=g.reason)
+            tag = f" ({role})" if role != "ground" else ""
+            self._marker(g.lat, g.lng, f"{g.name}{tag}: {g.count}x {item.label}. {g.reason}")
 
         # Group orders need the units to exist in Olympus first.
         units = self.client.get_units()
@@ -256,14 +267,29 @@ class Commander:
         self._event("sweep", group=group_name, type=f.type, count=f.count, route=route, reason=f.reason)
 
     # ---------- watch loop ----------
-    def detected_enemy_air(self, units: dict[int, Unit]) -> dict[int, Unit]:
-        """Enemy aircraft that at least one live Red unit currently detects."""
+    def _detected_enemy(self, units: dict[int, Unit], categories: tuple[str, ...]) -> dict[int, Unit]:
         red = [u for u in units.values() if u.alive and u.coalition == self.scenario.coalition]
         seen = {c.id for u in red for c in u.contacts}
         return {
             uid: u for uid, u in units.items()
-            if uid in seen and u.alive and u.coalition not in (self.scenario.coalition, "neutral") and u.category in AIR_CATEGORIES
+            if uid in seen and u.alive and u.coalition not in (self.scenario.coalition, "neutral") and u.category in categories
         }
+
+    def detected_enemy_air(self, units: dict[int, Unit]) -> dict[int, Unit]:
+        """Enemy aircraft that at least one live Red unit currently detects."""
+        return self._detected_enemy(units, AIR_CATEGORIES)
+
+    def detected_enemy_ground(self, units: dict[int, Unit]) -> dict[int, Unit]:
+        """Enemy ground units that at least one live Red unit currently detects."""
+        return self._detected_enemy(units, GROUND_CATEGORIES)
+
+    def _live_leader(self, units: dict[int, Unit], g: SpawnedGroup) -> Unit | None:
+        """The group's leader, or None after dropping a group that has been wiped out."""
+        leader = self._leader(units, g.name)
+        if leader is None:
+            self._event("group_lost", group=g.name)
+            del self.groups[g.name]
+        return leader
 
     def tick(self, units: dict[int, Unit] | None = None) -> None:
         units = self.client.get_units() if units is None else units
@@ -314,6 +340,81 @@ class Commander:
                 break
             self._scramble(slot, t)
             assigned.add(t.id)
+
+        # 4. Ground war: reserves and artillery against detected enemy ground units.
+        ground = self.detected_enemy_ground(units)
+        self._direct_reserves(units, ground)
+        if rules.artillery_fire:
+            self._fire_missions(units, ground)
+
+    def _drive(self, leader: Unit, g: SpawnedGroup, target: Unit) -> None:
+        self.client.set_path(leader.id, [(target.lat, target.lng)])
+        g.target_id, g.target_lat, g.target_lng = target.id, target.lat, target.lng
+
+    def _direct_reserves(self, units: dict[int, Unit], threats: dict[int, Unit]) -> None:
+        o = self.scenario.objective
+        ring_m = self.scenario.rules.reserve_react_within_km * 1000
+        from_objective = lambda u: geo.distance_m(o.lat, o.lng, u.lat, u.lng)
+        enemy_groups: dict[str, list[Unit]] = {}
+        for t in threats.values():
+            enemy_groups.setdefault(t.group_name or str(t.id), []).append(t)
+
+        engaged: set[str] = set()
+        free: list[tuple[SpawnedGroup, Unit]] = []
+        for g in [g for g in self.groups.values() if g.role == "reserve"]:
+            leader = self._live_leader(units, g)
+            if leader is None:
+                continue
+            if g.target_group is not None:
+                target = threats.get(g.target_id) or min(
+                    enemy_groups.get(g.target_group, []), key=lambda t: geo.distance_m(leader.lat, leader.lng, t.lat, t.lng), default=None)
+                if target is not None and from_objective(target) <= ring_m * RESERVE_LEASH:
+                    engaged.add(g.target_group)
+                    if g.target_lat is None or geo.distance_m(g.target_lat, g.target_lng, target.lat, target.lng) > REPATH_M:
+                        self._drive(leader, g, target)
+                    continue
+                # Contact destroyed, lost or drawn too far away: back to the reserve position.
+                self.client.set_path(leader.id, [(g.lat, g.lng)])
+                self._event("reserve_return", group=g.name, target_group=g.target_group)
+                g.target_id = g.target_group = g.target_lat = g.target_lng = None
+            free.append((g, leader))
+
+        for key, members in sorted(enemy_groups.items(), key=lambda kv: min(map(from_objective, kv[1]))):
+            if not free:
+                break
+            nearest = min(members, key=from_objective)
+            if key in engaged or from_objective(nearest) > ring_m:
+                continue
+            g, leader = min(free, key=lambda gl: geo.distance_m(gl[1].lat, gl[1].lng, nearest.lat, nearest.lng))
+            free.remove((g, leader))
+            self._drive(leader, g, nearest)
+            g.target_group = key
+            self._event("reserve_sent", group=g.name, target=nearest.id, target_group=key,
+                        target_km_from_objective=round(from_objective(nearest) / 1000, 1))
+
+    def _fire_missions(self, units: dict[int, Unit], threats: dict[int, Unit]) -> None:
+        rules = self.scenario.rules
+        o = self.scenario.objective
+        now = time.time()
+        red_ground = [u for u in units.values() if u.alive and u.coalition == self.scenario.coalition and u.category in GROUND_CATEGORIES]
+        safe = [t for t in threats.values()
+                if not any(geo.distance_m(r.lat, r.lng, t.lat, t.lng) <= rules.no_fire_near_friendly_m for r in red_ground)]
+        fired_at: set[int] = set()
+        for g in [g for g in self.groups.values() if g.role == "artillery"]:
+            leader = self._live_leader(units, g)
+            if leader is None or now - g.last_fire < rules.fire_mission_every_s:
+                continue
+            reach_m = self.catalog[g.type].engagement_range_m if g.type in self.catalog else 0
+            in_range = [t for t in safe if geo.distance_m(leader.lat, leader.lng, t.lat, t.lng) <= reach_m]
+            if not in_range:
+                continue
+            # Spread batteries over different targets, closest to the objective first.
+            target = min(in_range, key=lambda t: (t.id in fired_at, geo.distance_m(o.lat, o.lng, t.lat, t.lng)))
+            self.client.fire_at_area(leader.id, target.lat, target.lng)
+            g.last_fire, g.target_id = now, target.id
+            fired_at.add(target.id)
+            self._event("fire_mission", group=g.name, target=target.id, target_type=target.name,
+                        range_km=round(geo.distance_m(leader.lat, leader.lng, target.lat, target.lng) / 1000, 1))
 
     def _pick_alert(self, target: Unit) -> AlertSlot | None:
         ready = [s for s in self.alerts if s.remaining > 0]

@@ -332,5 +332,9 @@ class OlympusClient:
     def attack_unit(self, unit_id: int, target_id: int) -> None:
         self.send("attackUnit", {"ID": unit_id, "targetID": target_id})
 
+    def fire_at_area(self, unit_id: int, lat: float, lng: float) -> None:
+        """Artillery: DCS FireAtPoint at this spot (100 m radius). Sending it again re-tasks the group."""
+        self.send("fireAtArea", {"ID": unit_id, "location": {"lat": lat, "lng": lng}})
+
     def create_marker(self, marker_id: int, lat: float, lng: float, text: str) -> None:
         self.send("createMarker", {"markerID": marker_id, "location": {"lat": lat, "lng": lng}, "text": text})

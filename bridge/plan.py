@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import geo
-from .catalog import AIR_DEFENCE_CLASSES, Catalog
+from .catalog import AIR_DEFENCE_CLASSES, MANOEUVRE_CLASSES, Catalog
 from .scenario import Scenario
 
 MAX_SWEEP_LEG_KM = 250
@@ -20,6 +20,7 @@ class GroundGroup:
     distance_km: float
     heading_deg: float
     reason: str
+    role: str = "position"  # "position" (holds its spot) or "reserve" (tanks/APCs sent to detected enemy ground units)
     lat: float = 0.0
     lng: float = 0.0
 
@@ -77,9 +78,11 @@ def json_schema(scenario: Scenario, catalog: Catalog, airbase_names: list[str]) 
             "bearing_deg": {"type": "number", "description": "True bearing from the objective centre"},
             "distance_km": {"type": "number", "description": "Distance from the objective centre"},
             "heading_deg": {"type": "number", "description": "Direction the group faces"},
+            "role": {"type": "string", "enum": ["position", "reserve"],
+                     "description": "position: holds this spot. reserve (tanks and APCs only): waits here, then drives to detected enemy ground units"},
             "reason": {"type": "string", "description": "One line: why here"},
         },
-        "required": ["name", "type", "count", "bearing_deg", "distance_km", "heading_deg", "reason"],
+        "required": ["name", "type", "count", "bearing_deg", "distance_km", "heading_deg", "role", "reason"],
         "additionalProperties": False,
     }
     fighter = {
@@ -134,6 +137,10 @@ def validate(plan: Plan, scenario: Scenario, catalog: Catalog, red_airbases: dic
             errors.append(f"{g.name}: count must be at least 1")
         if item.is_template and g.count != 1:
             errors.append(f"{g.name}: '{g.type}' spawns a whole battery, so count must be 1 (use separate groups)")
+        if g.role not in ("position", "reserve"):
+            errors.append(f"{g.name}: role must be 'position' or 'reserve'")
+        elif g.role == "reserve" and item.cls not in MANOEUVRE_CLASSES:
+            errors.append(f"{g.name}: only tanks and APCs can be a reserve, not {item.cls}")
         if g.distance_km < 0 or g.distance_km > rules.max_distance_from_objective_km:
             errors.append(f"{g.name}: {g.distance_km} km is outside the allowed 0-{rules.max_distance_from_objective_km} km")
         g.lat, g.lng = geo.project(o.lat, o.lng, g.bearing_deg % 360, g.distance_km * 1000)

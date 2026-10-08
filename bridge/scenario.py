@@ -47,6 +47,11 @@ class Rules:
     air_spawn_altitude_ft: float = 10000
     sweep_altitude_ft: float = 25000
     poll_seconds: float = 5
+    # Ground war: enemy ground units count only once a Red unit detects them (EWRs do not see vehicles).
+    reserve_react_within_km: float = 30  # a detected enemy ground group this close to the objective draws a reserve
+    artillery_fire: bool = True  # artillery fires on detected enemy ground units within its range
+    fire_mission_every_s: float = 90  # minimum time between fire missions of one battery
+    no_fire_near_friendly_m: float = 500  # no fire mission on a target this close to a Red ground unit
 
 
 @dataclass

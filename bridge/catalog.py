@@ -21,12 +21,16 @@ DEFAULT_CLASS_PRICES = {
     "tank_modern": 15,
     "tank_old": 8,
     "apc": 6,
-    "artillery": 10,
+    "artillery": 10,  # tube artillery and mortars
+    "mlrs": 25,  # rocket artillery reaching beyond 30 km (Uragan, Smerch)
     "fighter": 40,  # per airframe
 }
 
 AIR_DEFENCE_CLASSES = {"sam_long", "sam_medium", "sam_short", "aaa"}
-GROUND_CLASSES = AIR_DEFENCE_CLASSES | {"ewr", "tank_modern", "tank_old", "apc", "artillery"}
+MANOEUVRE_CLASSES = {"tank_modern", "tank_old", "apc"}  # can be held as a reserve that drives to a contact
+ARTILLERY_CLASSES = {"artillery", "mlrs"}  # fire on detected enemy ground units within range
+GROUND_CLASSES = AIR_DEFENCE_CLASSES | MANOEUVRE_CLASSES | ARTILLERY_CLASSES | {"ewr"}
+MLRS_MIN_RANGE_M = 30_000
 
 
 @dataclass
@@ -83,7 +87,7 @@ def _ground_class(entry: dict) -> str | None:
     if kind == "APC":
         return "apc"
     if kind == "Artillery":
-        return "artillery"
+        return "mlrs" if float(entry.get("engagementRange") or 0) > MLRS_MIN_RANGE_M else "artillery"
     return None
 
 

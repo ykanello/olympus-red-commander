@@ -1,0 +1,28 @@
+# Option B with ground forces: air defence, fighters, armour and artillery from one priced menu.
+# Claude splits budget_points between the air and the ground threat, and marks some armour as a reserve.
+scenario: defend-kutaisi-combined
+coalition: red
+era: [Late Cold War, Modern]
+
+objective:
+  name: Kutaisi airbase
+  location: { lat: 42.176, lng: 42.482 }
+  radius_m: 3000
+  threat_axis_deg: 240
+
+budget_points: 600
+
+catalog:
+  classes: [sam_long, sam_medium, sam_short, aaa, ewr, fighter, tank_modern, apc, artillery, mlrs]
+  exclude: []
+  price_overrides: {}
+  class_prices: {}
+
+rules:
+  keep_sams_dark_until_km: 40
+  max_distance_from_objective_km: 60
+  scramble_when_contact_within_km: 80
+  reserve_react_within_km: 30     # detected enemy ground groups this close to the objective draw a reserve
+  artillery_fire: true            # artillery fires on detected enemy ground units in range
+  fire_mission_every_s: 90        # at most one fire mission per battery this often
+  no_fire_near_friendly_m: 500    # never fire on a target this close to Red ground units

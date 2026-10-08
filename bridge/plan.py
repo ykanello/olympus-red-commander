@@ -62,7 +62,7 @@ class Plan:
 def json_schema(scenario: Scenario, catalog: Catalog, airbase_names: list[str]) -> dict:
     """Structured-output schema. Enums keep Claude to types and airbases that exist."""
     ground_types = catalog.names("groundunit")
-    air_types = catalog.names("aircraft")
+    air_types = [n for n in catalog.names("aircraft") if catalog[n].cls == "fighter"]  # defence flies no ground attack
     point = {
         "type": "object",
         "properties": {"bearing_deg": {"type": "number"}, "distance_km": {"type": "number"}},
@@ -147,7 +147,7 @@ def validate(plan: Plan, scenario: Scenario, catalog: Catalog, red_airbases: dic
         used[g.type] = used.get(g.type, 0) + g.count
 
     for f in plan.fighters:
-        if f.type not in catalog or catalog[f.type].category != "aircraft":
+        if f.type not in catalog or catalog[f.type].cls != "fighter":
             errors.append(f"Fighter tasking: unknown aircraft type '{f.type}'")
             continue
         if f.count < 1:

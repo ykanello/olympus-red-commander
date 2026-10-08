@@ -24,6 +24,7 @@ DEFAULT_CLASS_PRICES = {
     "artillery": 10,  # tube artillery and mortars
     "mlrs": 25,  # rocket artillery reaching beyond 30 km (Uragan, Smerch)
     "fighter": 40,  # per airframe
+    "attack": 35,  # per airframe: ground-attack aircraft with no air-to-air loadout (Su-25)
 }
 
 AIR_DEFENCE_CLASSES = {"sam_long", "sam_medium", "sam_short", "aaa"}
@@ -31,6 +32,7 @@ MANOEUVRE_CLASSES = {"tank_modern", "tank_old", "apc"}  # can be held as a reser
 ARTILLERY_CLASSES = {"artillery", "mlrs"}  # fire on detected enemy ground units within range
 GROUND_CLASSES = AIR_DEFENCE_CLASSES | MANOEUVRE_CLASSES | ARTILLERY_CLASSES | {"ewr"}
 MLRS_MIN_RANGE_M = 30_000
+GROUND_ATTACK_ROLES = ("CAS", "Strike")
 
 
 @dataclass
@@ -45,6 +47,7 @@ class CatalogItem:
     acquisition_range_m: float = 0.0
     is_template: bool = False
     a2a_loadouts: list[str] = field(default_factory=list)
+    ground_attack_loadouts: list[str] = field(default_factory=list)
     description: str = ""
 
     def card(self) -> dict:
@@ -61,7 +64,10 @@ class CatalogItem:
             card["detection_range_km"] = round(self.acquisition_range_m / 1000, 1)
             card["spawns_as_full_battery"] = self.is_template
         else:
-            card["air_to_air_loadouts"] = self.a2a_loadouts[:4]
+            if self.a2a_loadouts:
+                card["air_to_air_loadouts"] = self.a2a_loadouts[:4]
+            if self.ground_attack_loadouts:
+                card["ground_attack_loadouts"] = self.ground_attack_loadouts[:4]
         if self.description:
             card["description"] = self.description
         return card
@@ -169,17 +175,21 @@ class Catalog:
             )
 
         for name, entry in aircraft.items():
-            loadouts = [l["name"] for l in entry.get("loadouts", []) if "CAP" in l.get("roles", []) and l.get("items")]
-            if not loadouts or not wanted(name, entry, "fighter"):
+            armed = [l for l in entry.get("loadouts", []) if l.get("items")]
+            loadouts = [l["name"] for l in armed if "CAP" in l.get("roles", [])]
+            attack = [l["name"] for l in armed if set(GROUND_ATTACK_ROLES) & set(l.get("roles", []))]
+            klass = "fighter" if loadouts else "attack" if attack else None
+            if klass is None or not wanted(name, entry, klass):
                 continue
             items[name] = CatalogItem(
                 name=name,
                 label=entry.get("label", name),
-                cls="fighter",
+                cls=klass,
                 category="aircraft",
                 era=entry.get("era", ""),
-                price=int(overrides.get(name, prices["fighter"])),
+                price=int(overrides.get(name, prices[klass])),
                 a2a_loadouts=loadouts,
+                ground_attack_loadouts=attack,
                 description=entry.get("description", ""),
             )
 

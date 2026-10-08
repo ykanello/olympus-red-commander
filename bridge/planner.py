@@ -83,7 +83,7 @@ def build_brief(scenario: Scenario, catalog: Catalog, red_airbases: dict[str, tu
         brief["instruction"] = "Place every item of the inventory. Fighters listed with a base must use that base."
     else:
         brief["budget_points"] = scenario.budget_points
-        brief["menu"] = catalog.cards()
+        brief["menu"] = [c for c in catalog.cards() if c["class"] != "attack"]
         brief["instruction"] = "Buy from the menu within budget_points (price is per unit or per airframe) and place what you buy."
     return brief
 
@@ -93,11 +93,11 @@ class Planner:
         self.config = config or PlannerConfig()
         self.client = client or anthropic.Anthropic()
 
-    def _ask(self, messages: list[dict], schema: dict):
+    def _ask(self, messages: list[dict], schema: dict, system: str = SYSTEM_PROMPT):
         kwargs = dict(
             model=self.config.model,
             max_tokens=self.config.max_tokens,
-            system=SYSTEM_PROMPT,
+            system=system,
             messages=messages,
             output_config={"effort": self.config.effort, "format": {"type": "json_schema", "schema": schema}},
         )
@@ -119,14 +119,21 @@ class Planner:
     def plan(self, scenario: Scenario, catalog: Catalog, red_airbases: dict[str, tuple[float, float]]) -> tuple[Plan, list[str]]:
         schema = json_schema(scenario, catalog, sorted(red_airbases))
         brief = build_brief(scenario, catalog, red_airbases)
-        messages: list[dict] = [{"role": "user", "content": json.dumps(brief, indent=1)}]
+        return self.solve(brief, schema, lambda data: self._check(Plan.from_json(data), scenario, catalog, red_airbases))
 
+    @staticmethod
+    def _check(plan: Plan, scenario: Scenario, catalog: Catalog, red_airbases) -> tuple[Plan, list[str], list[str]]:
+        errors, warnings = validate(plan, scenario, catalog, red_airbases)
+        return plan, errors, warnings
+
+    def solve(self, brief: dict, schema: dict, check: Callable[[dict], tuple], system: str = SYSTEM_PROMPT):
+        """Ask, then send validation errors back for repair. check(data) returns (result, errors, warnings)."""
+        messages: list[dict] = [{"role": "user", "content": json.dumps(brief, indent=1)}]
         for attempt in range(self.config.repair_rounds + 1):
-            response, data = self._ask(messages, schema)
-            plan = Plan.from_json(data)
-            errors, warnings = validate(plan, scenario, catalog, red_airbases)
+            response, data = self._ask(messages, schema, system)
+            result, errors, warnings = check(data)
             if not errors:
-                return plan, warnings
+                return result, warnings
             log.warning("Plan attempt %d failed validation: %s", attempt + 1, errors)
             messages.append({"role": "assistant", "content": response.content})
             messages.append({

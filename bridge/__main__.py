@@ -4,6 +4,7 @@
   python -m bridge plan    scenarios/defend-kutaisi.yaml   # ask Claude for a plan, print it, spawn nothing
   python -m bridge run     scenarios/defend-kutaisi.yaml   # plan, spawn, then watch and scramble
   python -m bridge run     scenarios/defend-kutaisi.yaml --plan logs/plan-....json   # reuse a saved plan
+  python -m bridge run     scenarios/take-kutaisi.yaml     # offensive campaign: Claude plans, then reviews as it goes
 
 run waits for the mission, keeps going when Olympus drops out, takes back its units if restarted in the same
 mission, and spawns the plan again when the mission restarts.
@@ -24,6 +25,7 @@ from pathlib import Path
 import requests
 import yaml
 
+from .campaign import CampaignCommander, CampaignPlan, CampaignPlanner, validate_campaign
 from .catalog import Catalog
 from .commander import Commander, MissionRestarted
 from .olympus import OlympusClient
@@ -90,6 +92,50 @@ def print_plan(plan: Plan, catalog: Catalog, warnings: list[str]) -> None:
         print(f"  Warning: {w}")
 
 
+def print_campaign_plan(plan: CampaignPlan, catalog: Catalog, warnings: list[str]) -> None:
+    print(f"\n{plan.summary}\n")
+    for c in plan.convoys:
+        load = ", ".join(f"{e.count}x {e.type}" for e in c.elements)
+        when = f"sets off at +{c.depart_min:g} min, {len(c.route)} waypoints" if c.route else "waits at staging"
+        print(f"  {c.name:<18} {load}  ({when})  {c.reason}")
+    for b in plan.artillery:
+        p = b.firing_position
+        print(f"  {b.name:<18} {b.count}x {b.type}  fires from {p['bearing_deg']:.0f}° {p['distance_km']:.1f} km  {b.reason}")
+    for a in plan.air:
+        print(f"  {a.role:<18} {a.count}x {a.type} from {a.airbase}  {a.reason}")
+    for o in plan.orders:
+        print(f"  order: {o.group} {o.action}  {o.reason}")
+    print(f"\n  Cost: {plan.cost(catalog)} points")
+    for w in warnings:
+        print(f"  Warning: {w}")
+
+
+def staging_point(scenario: Scenario, bases: dict) -> tuple[float, float]:
+    camp = scenario.campaign
+    if camp.hq not in bases:
+        sys.exit(f"campaign.hq '{camp.hq}' is not a {scenario.coalition} airbase in this mission. "
+                 f"{scenario.coalition.capitalize()} airbases: {sorted(bases) or 'none'}")
+    return (camp.staging_lat, camp.staging_lng) if camp.staging_lat is not None else bases[camp.hq]
+
+
+def make_campaign_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path) -> tuple[CampaignPlan, list[str]]:
+    staging = staging_point(scenario, bases)
+    if args.plan:
+        plan = CampaignPlan.from_json(json.loads(args.plan.read_text(encoding="utf-8")), scenario.campaign.hq)
+        errors, warnings = validate_campaign(plan, scenario, catalog, scenario.budget_points)
+        if errors:
+            sys.exit("Saved plan is invalid: " + "; ".join(errors))
+        return plan, warnings
+    require_api_key()
+    plan, warnings = campaign_planner(cfg).plan_campaign(scenario, catalog, bases, staging)
+    save_plan(plan, scenario, log_dir)
+    return plan, warnings
+
+
+def campaign_planner(cfg: dict) -> CampaignPlanner:
+    return CampaignPlanner(PlannerConfig(**cfg.get("planner", {})))
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="bridge", description="Claude as Red commander through DCS Olympus")
     parser.add_argument("command", choices=["catalog", "plan", "run"])
@@ -97,6 +143,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--config", type=Path, default=Path("config.yaml"))
     parser.add_argument("--plan", type=Path, help="Use a saved plan JSON instead of asking Claude")
     parser.add_argument("--replan", action="store_true", help="Ask Claude for a fresh plan each time the mission restarts")
+    parser.add_argument("--no-reviews", action="store_true", help="Campaign: run the opening plan without Claude reviewing it as it goes")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -117,8 +164,12 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.command == "plan":
         bases = connect(client, scenario, wait=False)
-        plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
-        print_plan(plan, catalog, warnings)
+        if scenario.campaign:
+            plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir)
+            print_campaign_plan(plan, catalog, warnings)
+        else:
+            plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
+            print_plan(plan, catalog, warnings)
         return
 
     # run: keep going across mission restarts until Ctrl+C.
@@ -129,8 +180,16 @@ def main(argv: list[str] | None = None) -> None:
             bases = connect(client, scenario, wait=True)
             session = client.last_session_hash
             stamp = time.strftime("%Y%m%d-%H%M%S")
-            commander = Commander(client, scenario, catalog, bases, event_log=log_dir / f"events-{scenario.name}-{stamp}.jsonl",
-                                  session_hash=session, work_dir=log_dir, check_terrain=cfg.get("check_terrain", True))
+            common = dict(event_log=log_dir / f"events-{scenario.name}-{stamp}.jsonl", session_hash=session, work_dir=log_dir,
+                          check_terrain=cfg.get("check_terrain", True))
+            if scenario.campaign:
+                staging = staging_point(scenario, bases)
+                reviewer = campaign_planner(cfg) if not args.no_reviews else None
+                commander = CampaignCommander(
+                    client, scenario, catalog, bases, **common,
+                    replanner=(lambda report, b=bases, st=staging: reviewer.review(scenario, catalog, b, st, report)) if reviewer else None)
+            else:
+                commander = Commander(client, scenario, catalog, bases, **common)
             state = load_state(state_path)
             if state and session and state.get("session_hash") == session:
                 commander.restore(state)
@@ -138,8 +197,12 @@ def main(argv: list[str] | None = None) -> None:
                 logging.info("Same mission as before (%d groups): taking back control instead of spawning again.", len(commander.groups))
             else:
                 if plan is None or args.replan:
-                    plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
-                    print_plan(plan, catalog, warnings)
+                    if scenario.campaign:
+                        plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir)
+                        print_campaign_plan(plan, catalog, warnings)
+                    else:
+                        plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
+                        print_plan(plan, catalog, warnings)
                 else:
                     logging.info("New mission: spawning the same plan again.")
                 commander.state_path = state_path
@@ -193,15 +256,23 @@ def make_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict
         if errors:
             sys.exit("Saved plan is invalid: " + "; ".join(errors))
         return plan, warnings
+    require_api_key()
+    planner = Planner(PlannerConfig(**cfg.get("planner", {})))
+    plan, warnings = planner.plan(scenario, catalog, bases)
+    save_plan(plan, scenario, log_dir)
+    return plan, warnings
+
+
+def require_api_key() -> None:
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         sys.exit("ANTHROPIC_API_KEY is not set in this terminal. In PowerShell: $env:ANTHROPIC_API_KEY = \"sk-ant-...\" "
                  "(or setx it, then open a new window). Or reuse a saved plan with --plan.")
-    planner = Planner(PlannerConfig(**cfg.get("planner", {})))
-    plan, warnings = planner.plan(scenario, catalog, bases)
+
+
+def save_plan(plan, scenario: Scenario, log_dir: Path) -> None:
     plan_path = log_dir / f"plan-{scenario.name}-{time.strftime('%Y%m%d-%H%M%S')}.json"
     plan_path.write_text(json.dumps(dataclasses.asdict(plan), indent=1), encoding="utf-8")
     logging.info("Plan saved to %s", plan_path)
-    return plan, warnings
 
 
 if __name__ == "__main__":

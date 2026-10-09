@@ -530,6 +530,7 @@ class App:
         self.start_btn.configure(state="disabled" if running else "normal")
         self.plan_btn.configure(state="disabled" if running else "normal")
         self.stop_btn.configure(state="normal" if running else "disabled")
+        self._local_lights()
 
     # ----- log -----
     def note(self, text: str) -> None:
@@ -574,6 +575,10 @@ class App:
             return
         for key, (colour, text) in result.items():
             self.lights[key].set(colour, text)
+        self._local_lights()
+        self.root.after(CHECK_EVERY_MS, self.check_status)
+
+    def _local_lights(self) -> None:
         if self.api_key.get().strip() or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
             self.lights["key"].set(GREEN, "set" + (" (from this window)" if self.api_key.get().strip() else " (environment)"))
         else:
@@ -584,7 +589,6 @@ class App:
             self.lights["bridge"].set(RED, f"stopped with exit code {self.exit_code}: see the log")
         else:
             self.lights["bridge"].set(GRAY, "not running")
-        self.root.after(CHECK_EVERY_MS, self.check_status)
 
     # ----- misc -----
     def open_file(self, path: Path) -> None:

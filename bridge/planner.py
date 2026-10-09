@@ -39,6 +39,52 @@ Choosing units: when two types do the same job, take the cheaper one unless the 
 Keep every reason to one line. Pick loadouts only from the air_to_air_loadouts listed for that type."""
 
 
+# USD per million tokens: (input, output, cache read). Cache writes cost 1.25x input (5-minute) or 2x (1-hour).
+# Output includes Claude's thinking. Unknown models are priced as Opus 5.5, so the totals are an estimate.
+PRICES = {
+    "claude-fable-5-1": (10.0, 50.0, 0.25),
+    "claude-fable-5": (10.0, 50.0, 1.0),
+    "claude-opus-5-5": (4.0, 20.0, 0.20),
+    "claude-opus-5": (5.0, 25.0, 0.50),
+    "claude-opus-4-8": (5.0, 25.0, 0.50),
+    "claude-sonnet-5-5": (2.0, 10.0, 0.20),
+    "claude-sonnet-5": (2.0, 10.0, 0.20),
+    "claude-haiku-5-5": (0.10, 0.50, 0.01),
+}
+
+
+@dataclass
+class Usage:
+    """Tokens and estimated cost of the Claude calls in one mission."""
+    calls: int = 0
+    input_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0
+
+    def add(self, response, model: str, what: str) -> None:
+        u = getattr(response, "usage", None)
+        if u is None:
+            return
+        count = lambda name: getattr(u, name, None) or 0
+        fresh, read, write, out = (count("input_tokens"), count("cache_read_input_tokens"),
+                                   count("cache_creation_input_tokens"), count("output_tokens"))
+        write_1h = getattr(getattr(u, "cache_creation", None), "ephemeral_1h_input_tokens", None) or 0
+        model = getattr(response, "model", None) or model
+        price_in, price_out, price_read = next((p for name, p in PRICES.items() if model.startswith(name)), PRICES["claude-opus-5-5"])
+        cost = (fresh * price_in + read * price_read + write_1h * 2 * price_in + (write - write_1h) * 1.25 * price_in
+                + out * price_out) / 1e6
+        self.calls += 1
+        self.input_tokens += fresh
+        self.cache_read_tokens += read
+        self.cache_write_tokens += write
+        self.output_tokens += out
+        self.cost_usd += cost
+        log.info("Claude %s: %d input tokens (+%d read from cache, %d written to cache), %d output tokens, about $%.3f. "
+                 "This mission: %d calls, $%.2f", what, fresh, read, write, out, cost, self.calls, self.cost_usd)
+
+
 @dataclass
 class PlannerConfig:
     model: str = "claude-opus-5-5"
@@ -89,11 +135,12 @@ def build_brief(scenario: Scenario, catalog: Catalog, red_airbases: dict[str, tu
 
 
 class Planner:
-    def __init__(self, config: PlannerConfig | None = None, client: anthropic.Anthropic | None = None):
+    def __init__(self, config: PlannerConfig | None = None, client: anthropic.Anthropic | None = None, usage: Usage | None = None):
         self.config = config or PlannerConfig()
         self.client = client or anthropic.Anthropic()
+        self.usage = usage or Usage()
 
-    def _ask(self, messages: list[dict], schema: dict, system: str = SYSTEM_PROMPT):
+    def _ask(self, messages: list[dict], schema: dict, system: str = SYSTEM_PROMPT, what: str = "plan"):
         kwargs = dict(
             model=self.config.model,
             max_tokens=self.config.max_tokens,
@@ -107,6 +154,7 @@ class Planner:
             )
         else:
             response = self.client.messages.create(**kwargs)
+        self.usage.add(response, self.config.model, what)
 
         if response.stop_reason == "refusal":
             details = getattr(response, "stop_details", None)
@@ -126,11 +174,23 @@ class Planner:
         errors, warnings = validate(plan, scenario, catalog, red_airbases)
         return plan, errors, warnings
 
-    def solve(self, brief: dict, schema: dict, check: Callable[[dict], tuple], system: str = SYSTEM_PROMPT):
-        """Ask, then send validation errors back for repair. check(data) returns (result, errors, warnings)."""
-        messages: list[dict] = [{"role": "user", "content": json.dumps(brief, indent=1)}]
+    def solve(self, brief: dict, schema: dict, check: Callable[[dict], tuple], system: str = SYSTEM_PROMPT,
+              extra: dict | None = None, what: str = "plan"):
+        """Ask, then send validation errors back for repair. check(data) returns (result, errors, warnings).
+
+        With extra, brief is the part that stays the same all mission and is cached (1-hour TTL, since reviews can
+        be 10 minutes or more apart); extra is the part that changes with every call.
+        """
+        if extra is None:
+            content = json.dumps(brief, indent=1)
+        else:
+            content = [
+                {"type": "text", "text": json.dumps(brief, indent=1), "cache_control": {"type": "ephemeral", "ttl": "1h"}},
+                {"type": "text", "text": json.dumps(extra, indent=1)},
+            ]
+        messages: list[dict] = [{"role": "user", "content": content}]
         for attempt in range(self.config.repair_rounds + 1):
-            response, data = self._ask(messages, schema, system)
+            response, data = self._ask(messages, schema, system, what if attempt == 0 else f"{what} repair")
             result, errors, warnings = check(data)
             if not errors:
                 return result, warnings

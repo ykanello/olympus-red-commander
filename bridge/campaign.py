@@ -20,7 +20,7 @@ from . import geo
 from .catalog import ARTILLERY_CLASSES, Catalog
 from .commander import GROUND_CATEGORIES, AlertSlot, Commander, SpawnedGroup
 from .olympus import Unit
-from .plan import FighterTasking
+from .plan import FighterTasking, clean_text, cleaned
 from .planner import Planner
 from .scenario import Scenario
 
@@ -46,6 +46,8 @@ How your plan is used:
 - All aircraft fly from the HQ airbase. sweep: launches at the start and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near Red ground forces or the target. cas: waits on alert and is scrambled in pairs against detected enemy ground units near Red ground forces or the target. Loadouts only from the lists on the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 - Points you do not spend stay available. At later reviews you can buy reinforcements, which spawn at the staging area or the HQ.
+
+Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy.
 
 Reviews: every replan_minutes, and after big events (a group lost, a group arriving, the hold starting or breaking), you get a situation report and return the same structure. summary is your assessment in two or three sentences. orders change what existing ground groups do: move (with a new route), hold (stop where it is) or return (drive back to the staging area). convoys, artillery and air are reinforcements bought from points_left; leave them empty when none are needed. Return empty lists when nothing should change.
 
@@ -102,12 +104,12 @@ class CampaignPlan:
     @classmethod
     def from_json(cls, data: dict, hq: str) -> "CampaignPlan":
         return cls(
-            summary=data.get("summary", ""),
-            convoys=[Convoy(**{**c, "elements": [Element(**e) for e in c.get("elements", [])]}) for c in data.get("convoys", [])],
-            artillery=[Battery(**b) for b in data.get("artillery", [])],
-            air=[FighterTasking(**{"sweep_route": [], **{k: v for k, v in a.items() if k != "airbase"}, "airbase": hq})
+            summary=clean_text(data.get("summary", "")),
+            convoys=[Convoy(**{**cleaned(c), "elements": [Element(**e) for e in c.get("elements", [])]}) for c in data.get("convoys", [])],
+            artillery=[Battery(**cleaned(b)) for b in data.get("artillery", [])],
+            air=[FighterTasking(**{"sweep_route": [], **{k: v for k, v in cleaned(a).items() if k != "airbase"}, "airbase": hq})
                  for a in data.get("air", [])],
-            orders=[Order(**{"route": [], "reason": "", **o}) for o in data.get("orders", [])],
+            orders=[Order(**{"route": [], "reason": "", **cleaned(o)}) for o in data.get("orders", [])],
         )
 
     def cost(self, catalog: Catalog) -> int:
@@ -129,8 +131,12 @@ def convoy_types(catalog: Catalog) -> list[str]:
     return [n for n in catalog.names("groundunit") if not catalog[n].is_template and catalog[n].cls not in ARTILLERY_CLASSES]
 
 
-def campaign_schema(catalog: Catalog, group_labels: list[str] | None = None) -> dict:
-    """Structured-output schema for the opening plan, or for a review when group_labels is given."""
+def campaign_schema(catalog: Catalog, review: bool = False) -> dict:
+    """Structured-output schema for the opening plan, or for a review.
+
+    The review schema is the same all mission (group names are checked by validate_campaign, not listed here),
+    so it does not change the request from one review to the next and the cached brief stays valid.
+    """
     point = {
         "type": "object",
         "properties": {"bearing_deg": {"type": "number"}, "distance_km": {"type": "number"}},
@@ -185,11 +191,11 @@ def campaign_schema(catalog: Catalog, group_labels: list[str] | None = None) -> 
         "artillery": {"type": "array", "items": battery},
         "air": {"type": "array", "items": air},
     }
-    if group_labels is not None:
+    if review:
         properties["orders"] = {"type": "array", "items": {
             "type": "object",
             "properties": {
-                "group": {"type": "string", "enum": group_labels or [""]},
+                "group": {"type": "string", "description": "Name of one of your red_ground_groups"},
                 "action": {"type": "string", "enum": ["move", "hold", "return"]},
                 "route": {**route, "description": "New route for move; empty for hold and return"},
                 "reason": {"type": "string"},
@@ -312,24 +318,24 @@ class CampaignPlanner(Planner):
     def plan_campaign(self, scenario: Scenario, catalog: Catalog, red_airbases: dict,
                       staging: tuple[float, float]) -> tuple[CampaignPlan, list[str]]:
         brief = self.brief(scenario, catalog, red_airbases, staging)
-        brief["instruction"] = "Buy your opening force from the menu within budget_points (price per vehicle or airframe) and plan the opening of the offensive."
+        extra = {"instruction": "Buy your opening force from the menu within budget_points (price per vehicle or airframe) and plan the opening of the offensive."}
 
         def check(data):
             plan = CampaignPlan.from_json(data, scenario.campaign.hq)
             return (plan, *validate_campaign(plan, scenario, catalog, scenario.budget_points))
-        return self.solve(brief, campaign_schema(catalog), check, CAMPAIGN_PROMPT)
+        return self.solve(brief, campaign_schema(catalog), check, CAMPAIGN_PROMPT, extra=extra, what="opening plan")
 
     def review(self, scenario: Scenario, catalog: Catalog, red_airbases: dict, staging: tuple[float, float],
                report: dict) -> CampaignPlan:
         brief = self.brief(scenario, catalog, red_airbases, staging)
-        brief["situation"] = report
-        brief["instruction"] = "Review the situation and give your orders. Reinforcements must fit within situation.points_left."
+        extra = {"situation": report,
+                 "instruction": "Review the situation and give your orders. Reinforcements must fit within situation.points_left."}
         labels = [g["name"] for g in report["red_ground_groups"]]
 
         def check(data):
             plan = CampaignPlan.from_json(data, scenario.campaign.hq)
             return (plan, *validate_campaign(plan, scenario, catalog, report["points_left"], labels))
-        plan, _ = self.solve(brief, campaign_schema(catalog, labels), check, CAMPAIGN_PROMPT)
+        plan, _ = self.solve(brief, campaign_schema(catalog, review=True), check, CAMPAIGN_PROMPT, extra=extra, what="review")
         return plan
 
 
@@ -507,6 +513,7 @@ class CampaignCommander(Commander):
                 self.outcome = "won"
                 self._event("target_taken", red_units=len(red_in), held_min=round((now - self.hold_since) / 60, 1))
                 self._marker(o.lat, o.lng, f"Red has taken {o.name}")
+                log.info("Red has taken %s. Claude reviews stop here; the units keep fighting.", o.name)
         elif self.hold_since is not None:
             self.hold_since = None
             self._event("hold_broken", red_units=len(red_in), enemy_units=len(blue_in))
@@ -515,6 +522,7 @@ class CampaignCommander(Commander):
         if not self.outcome and not ours and self.points_left < cheapest:
             self.outcome = "lost"
             self._event("campaign_lost", points_left=self.points_left)
+            log.info("The campaign is lost. Claude reviews stop here.")
 
     # ----- reviews -----
     def _maybe_review(self, units: dict[int, Unit]) -> None:
@@ -528,6 +536,8 @@ class CampaignCommander(Commander):
                 self._apply_review(future.result())
             except Exception:
                 log.exception("Review failed; the current orders stand")
+        if self.outcome:
+            return  # won or lost: nothing left for Claude to decide, so no more reviews to pay for
         now = time.time()
         due = now - self.last_review >= self.camp.replan_minutes * 60
         triggered = self.review_reasons and now - self.last_review >= self.camp.min_replan_gap_minutes * 60

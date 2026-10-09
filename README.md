@@ -30,6 +30,33 @@ python -m bridge run     scenarios/defend-kutaisi.yaml --plan logs/plan-....json
 Each run writes `logs/plan-*.json` (the plan) and `logs/events-*.jsonl` (spawns, scrambles, SAMs going active).
 The plan is also drawn as F10 map markers.
 
+## The window
+
+`start-red-commander-gui.bat` (or `python -m bridge.gui`) opens a small window:
+
+- **Status lights**, checked every 5 seconds: DCS running on this machine, the Olympus backend answering (it only does
+  while a mission runs), the Olympus web interface, the Anthropic API key, and the commander itself.
+- **Scenario**: pick a file from `scenarios/` and edit its values: objective, budget, campaign settings and rules.
+  Rules the file leaves at their default are shown in grey; they are only written if you change them. The inventory
+  list is edited in the file (Open in editor). Save checks the scenario the same way the bridge does.
+- **Settings**: the `config.yaml` values (Saved Games folder, Olympus address, model, effort...). You can also paste
+  an API key there for this window only; it is never saved.
+- **Start** runs `python -m bridge run` for the chosen scenario, **Plan only** runs `plan`, **Stop** stops it the way
+  Ctrl+C does (units stay in the mission). The log shows underneath, with the Claude cost so far this mission.
+
+Saving keeps the comments in your YAML files when `ruamel.yaml` is installed (it is in `requirements.txt`).
+
+## Claude cost
+
+Each Claude call is logged with its tokens and an estimated cost, plus the running total for the mission:
+
+```
+Claude review: 1840 input tokens (+21310 read from cache, 0 written to cache), 2210 output tokens, about $0.055. This mission: 4 calls, $0.31
+```
+
+In a campaign, the part of the brief that does not change during the mission (rules, map, menu) is cached for an hour,
+so reviews pay a fraction of its price after the first one. Reviews stop once the target is taken or the campaign is lost.
+
 ## Running it unattended
 
 `start-red-commander.bat` runs `python -m bridge run` for the scenario named at its top. Double-click it, or

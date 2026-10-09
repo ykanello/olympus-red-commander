@@ -295,7 +295,9 @@ class Commander:
         """The group's leader, or None after dropping a group that has been wiped out."""
         leader = self._leader(units, g.name)
         if leader is None:
-            self._event("group_lost", group=g.name)
+            # Say whose group it is: the DCS group name alone (Olympus-7) reads like an enemy group to Claude.
+            self._event("group_lost", group=g.name, name=g.label or g.name, side=f"{self.scenario.coalition} (yours)",
+                        role=g.role, type=g.type)
             del self.groups[g.name]
         return leader
 

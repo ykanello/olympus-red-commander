@@ -9,6 +9,8 @@ olympus:
   # Or point at each one directly:
   # olympus_json: "C:/Users/YOU/Saved Games/DCS/Config/olympus.json"
   # olympus_dir: "C:/Users/YOU/Saved Games/DCS/Mods/Services/Olympus"
+  # Olympus backend as host:port, if it is not the address and port in olympus.json:
+  # address: "localhost:4512"
 
 planner:
   model: claude-opus-5-5

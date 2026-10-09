@@ -63,8 +63,8 @@ def test_campaign_scenario_and_menu(scenario, catalog):
     assert "T-72B" in convoy_types and "Tor 9A331" in convoy_types
     assert "SA-11 SAM Battery" not in convoy_types and "SAU Msta" not in convoy_types  # fixed battery; artillery has its own list
     assert "orders" not in schema["properties"]
-    review = campaign_schema(catalog, ["Armour-1"])
-    assert review["properties"]["orders"]["items"]["properties"]["group"]["enum"] == ["Armour-1"]
+    review = campaign_schema(catalog, review=True)
+    assert "enum" not in review["properties"]["orders"]["items"]["properties"]["group"]  # same schema every review
 
 
 def test_campaign_validation_catches_mistakes(scenario, catalog):
@@ -99,7 +99,10 @@ def test_campaign_planner_asks_with_the_campaign_brief(scenario, catalog):
     assert [c.name for c in plan.convoys] == ["Armour-1", "Reserve"] and plan.air[0].airbase == "Sochi-Adler"
     call = fake.calls[0]
     assert "offensive" in call["system"]
-    brief = json.loads(call["messages"][0]["content"])
+    static, extra = call["messages"][0]["content"]
+    assert static["cache_control"] == {"type": "ephemeral", "ttl": "1h"} and "cache_control" not in extra
+    assert "opening" in json.loads(extra["text"])["instruction"]
+    brief = json.loads(static["text"])
     assert brief["hq_airbase"]["name"] == "Sochi-Adler" and brief["staging_area"]["name"] == "Gali"
     assert 75 < brief["staging_area"]["distance_km"] < 85
     types = {c["type"] for c in brief["menu"]}
@@ -171,10 +174,13 @@ def test_campaign_runs_convoys_cas_reviews_and_referee(scenario, catalog, olympu
     assert "RED-T-Wave-2" in cmd.groups and cmd.groups["RED-T-Wave-2"].status == "waiting"
     assert cmd.points_left == 800 - plan.cost(catalog) - 2 * 15
 
-    # Held for the full ten minutes: Red has taken the target.
+    # Held for the full ten minutes: Red has taken the target. That ends the reviews, scheduled or not.
     cmd.hold_since -= 11 * 60
     cmd.tick()
     assert cmd.outcome == "won"
+    cmd.last_review -= 3600
+    cmd.tick()
+    assert len(reports) == 1
 
     # A Blue unit drives into the zone: the hold is broken, but the win stands.
     fake.add(category="GroundUnit", coalition=2, name="M-1 Abrams", group_name="Blue-2", lat=KUTAISI[0], lng=KUTAISI[1])
@@ -210,3 +216,50 @@ def test_campaign_is_lost_when_the_ground_force_is_gone_and_points_are_spent(sce
         u.alive = False
     cmd.tick()
     assert cmd.outcome == "lost" and not cmd.groups
+
+
+def test_reviews_reuse_the_cached_brief_and_count_tokens(scenario, catalog):
+    from types import SimpleNamespace
+    from bridge.planner import Usage
+    review = {"summary": "Hold.", "convoys": [], "artillery": [], "air": [], "orders": []}
+    fake = FakeMessages([review, review])
+    usage_reply = SimpleNamespace(input_tokens=1000, output_tokens=2000, cache_read_input_tokens=20000,
+                                  cache_creation_input_tokens=0, cache_creation=None)
+    create = fake.create
+    fake.create = lambda **kw: SimpleNamespace(**vars(create(**kw)), usage=usage_reply, model="claude-opus-5-5")
+    client = SimpleNamespace(beta=SimpleNamespace(messages=fake), messages=fake)
+    usage = Usage()
+    planner = CampaignPlanner(PlannerConfig(), client=client, usage=usage)
+    report = lambda n: {"why_now": ["scheduled"], "points_left": 100, "red_ground_groups": [{"name": "Armour-1"}], "elapsed_min": n}
+    planner.review(scenario, catalog, BASES, (42.627, 41.735), report(10))
+    planner.review(scenario, catalog, BASES, (42.627, 41.735), report(20))
+    first, second = fake.calls
+    # Everything up to the cache breakpoint is identical, so the second review reads it from the cache.
+    assert first["system"] == second["system"] and first["output_config"] == second["output_config"]
+    assert first["messages"][0]["content"][0] == second["messages"][0]["content"][0]
+    assert first["messages"][0]["content"][1] != second["messages"][0]["content"][1]
+    # 1000 x $4 + 20000 x $0.20 + 2000 x $20 per million = $0.048 a call.
+    assert usage.calls == 2 and usage.cache_read_tokens == 40000
+    assert abs(usage.cost_usd - 0.096) < 1e-9
+
+
+def test_a_lost_red_group_is_reported_as_ours(scenario, catalog, olympus, tmp_path):
+    fake, client = olympus
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T", event_log=tmp_path / "e.jsonl")
+    cmd.execute(CampaignPlan.from_json(opening(), "Sochi-Adler"))
+    for u in fake.units.values():
+        if u.group_name == "RED-T-Reserve":
+            u.alive = False
+    cmd.tick()
+    lost = [e for e in cmd.recent_events if e["event"] == "group_lost"]
+    assert lost == [{"event": "group_lost", "group": "RED-T-Reserve", "name": "Reserve", "side": "red (yours)",
+                     "role": "convoy", "type": lost[0]["type"]}]
+
+
+def test_stray_json_is_cut_from_reasons():
+    data = {"summary": "Push on.", "orders": [], "artillery": [], "air": [], "convoys": [{
+        "name": "AD-Escort", "elements": [{"type": "Tor 9A331", "count": 1}], "depart_min": 0, "route": [],
+        "reason": 'Tor and Tunguska escort the armour into the zone."}],"artillery":[],"air":[],"orders":[],"reason":""}]'}]}
+    plan = CampaignPlan.from_json(data, "Sochi-Adler")
+    assert plan.convoys[0].reason == "Tor and Tunguska escort the armour into the zone."
+    assert CampaignPlan.from_json({**data, "summary": 'He said "hold" and we did.'}, "x").summary == 'He said "hold" and we did.'

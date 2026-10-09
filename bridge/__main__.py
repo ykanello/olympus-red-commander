@@ -18,6 +18,7 @@ import dataclasses
 import json
 import logging
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -30,7 +31,7 @@ from .catalog import Catalog
 from .commander import Commander, MissionRestarted
 from .olympus import OlympusClient
 from .plan import Plan, validate
-from .planner import Planner, PlannerConfig
+from .planner import Planner, PlannerConfig, Usage
 from .scenario import Scenario, load_scenario
 
 
@@ -118,7 +119,8 @@ def staging_point(scenario: Scenario, bases: dict) -> tuple[float, float]:
     return (camp.staging_lat, camp.staging_lng) if camp.staging_lat is not None else bases[camp.hq]
 
 
-def make_campaign_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path) -> tuple[CampaignPlan, list[str]]:
+def make_campaign_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path,
+                       usage: Usage) -> tuple[CampaignPlan, list[str]]:
     staging = staging_point(scenario, bases)
     if args.plan:
         plan = CampaignPlan.from_json(json.loads(args.plan.read_text(encoding="utf-8")), scenario.campaign.hq)
@@ -127,13 +129,13 @@ def make_campaign_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, ba
             sys.exit("Saved plan is invalid: " + "; ".join(errors))
         return plan, warnings
     require_api_key()
-    plan, warnings = campaign_planner(cfg).plan_campaign(scenario, catalog, bases, staging)
+    plan, warnings = campaign_planner(cfg, usage).plan_campaign(scenario, catalog, bases, staging)
     save_plan(plan, scenario, log_dir)
     return plan, warnings
 
 
-def campaign_planner(cfg: dict) -> CampaignPlanner:
-    return CampaignPlanner(PlannerConfig(**cfg.get("planner", {})))
+def campaign_planner(cfg: dict, usage: Usage) -> CampaignPlanner:
+    return CampaignPlanner(PlannerConfig(**cfg.get("planner", {})), usage=usage)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -147,6 +149,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
+    if hasattr(signal, "SIGBREAK"):  # Windows: the GUI's Stop button sends Ctrl+Break; stop as Ctrl+C would
+        signal.signal(signal.SIGBREAK, signal.default_int_handler)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     cfg = load_config(args.config)
     scenario = load_scenario(args.scenario)
@@ -158,6 +162,8 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     client = OlympusClient.from_olympus_json(olympus_json)
+    if cfg.get("olympus", {}).get("address"):  # host:port, instead of the one in olympus.json
+        client.base_url = f"http://{cfg['olympus']['address']}/olympus"
     log_dir = Path(cfg.get("log_dir", "logs"))
     log_dir.mkdir(exist_ok=True)
     add_file_log(log_dir)
@@ -165,10 +171,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "plan":
         bases = connect(client, scenario, wait=False)
         if scenario.campaign:
-            plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir)
+            plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir, Usage())
             print_campaign_plan(plan, catalog, warnings)
         else:
-            plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
+            plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir, Usage())
             print_plan(plan, catalog, warnings)
         return
 
@@ -179,12 +185,13 @@ def main(argv: list[str] | None = None) -> None:
         while True:
             bases = connect(client, scenario, wait=True)
             session = client.last_session_hash
+            usage = Usage()  # Claude tokens and cost, counted per mission
             stamp = time.strftime("%Y%m%d-%H%M%S")
             common = dict(event_log=log_dir / f"events-{scenario.name}-{stamp}.jsonl", session_hash=session, work_dir=log_dir,
                           check_terrain=cfg.get("check_terrain", True))
             if scenario.campaign:
                 staging = staging_point(scenario, bases)
-                reviewer = campaign_planner(cfg) if not args.no_reviews else None
+                reviewer = campaign_planner(cfg, usage) if not args.no_reviews else None
                 commander = CampaignCommander(
                     client, scenario, catalog, bases, **common,
                     replanner=(lambda report, b=bases, st=staging: reviewer.review(scenario, catalog, b, st, report)) if reviewer else None)
@@ -198,10 +205,10 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 if plan is None or args.replan:
                     if scenario.campaign:
-                        plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir)
+                        plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir, usage)
                         print_campaign_plan(plan, catalog, warnings)
                     else:
-                        plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir)
+                        plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir, usage)
                         print_plan(plan, catalog, warnings)
                 else:
                     logging.info("New mission: spawning the same plan again.")
@@ -249,7 +256,7 @@ def load_state(path: Path) -> dict | None:
         return None
 
 
-def make_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path) -> tuple[Plan, list[str]]:
+def make_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path, usage: Usage) -> tuple[Plan, list[str]]:
     if args.plan:
         plan = Plan.from_json(json.loads(args.plan.read_text(encoding="utf-8")))
         errors, warnings = validate(plan, scenario, catalog, bases)
@@ -257,7 +264,7 @@ def make_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict
             sys.exit("Saved plan is invalid: " + "; ".join(errors))
         return plan, warnings
     require_api_key()
-    planner = Planner(PlannerConfig(**cfg.get("planner", {})))
+    planner = Planner(PlannerConfig(**cfg.get("planner", {})), usage=usage)
     plan, warnings = planner.plan(scenario, catalog, bases)
     save_plan(plan, scenario, log_dir)
     return plan, warnings

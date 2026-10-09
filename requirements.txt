@@ -1,3 +1,4 @@
 anthropic>=1.0
 PyYAML>=6.0
 requests>=2.31
+ruamel.yaml>=0.18   # the GUI uses it to keep the comments in your YAML files when it saves them

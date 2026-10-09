@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from . import geo
@@ -9,6 +10,20 @@ from .catalog import AIR_DEFENCE_CLASSES, MANOEUVRE_CLASSES, Catalog
 from .scenario import Scenario
 
 MAX_SWEEP_LEG_KM = 250
+
+# Structured output occasionally runs past the end of a string field and repeats JSON into it, as in
+# 'escort the armour into the zone."}],"artillery":[],...'. The leftover starts with a closing quote.
+_LEFTOVER_JSON = re.compile(r'"\s*(?:[}\]]|,\s*")')
+
+
+def clean_text(text: str) -> str:
+    """Cut stray JSON from the end of a reason or summary Claude wrote."""
+    m = _LEFTOVER_JSON.search(text or "")
+    return text[:m.start()].rstrip() if m else text
+
+
+def cleaned(item: dict) -> dict:
+    return {k: clean_text(v) if k in ("reason", "summary") and isinstance(v, str) else v for k, v in item.items()}
 
 
 @dataclass
@@ -49,9 +64,9 @@ class Plan:
     @classmethod
     def from_json(cls, data: dict) -> "Plan":
         return cls(
-            summary=data.get("summary", ""),
-            ground_groups=[GroundGroup(**g) for g in data.get("ground_groups", [])],
-            fighters=[FighterTasking(**f) for f in data.get("fighters", [])],
+            summary=clean_text(data.get("summary", "")),
+            ground_groups=[GroundGroup(**cleaned(g)) for g in data.get("ground_groups", [])],
+            fighters=[FighterTasking(**cleaned(f)) for f in data.get("fighters", [])],
         )
 
     def cost(self, catalog: Catalog) -> int:

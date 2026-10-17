@@ -39,6 +39,19 @@ class Warehouses:
 
 
 @dataclass
+class Missiles:
+    """Ballistic missile groups in the mission that Claude may fire, once the mission's own strike is over."""
+    groups: list[str]  # mission editor group names
+    targets: list[Zone] = field(default_factory=list)  # named aim points Claude can choose from
+    intent: str = ""  # what the strikes are for, in a sentence or two, for Claude
+    wait_for_mission_strike: bool = True  # the mission fires first; Claude only gets each group after it has launched
+    quiet_minutes: float = 3  # no launch for this long: a group's strike is over
+    release_after_minutes: float | None = None  # hand the groups to Claude anyway after this long, launched or not
+    no_fire_near_friendly_m: float = 2000  # no strike on a point this close to a Red ground unit
+    range_km: dict[str, float] = field(default_factory=dict)  # per launcher type, where Olympus has no range for it
+
+
+@dataclass
 class InventoryEntry:
     type: str
     count: int
@@ -104,6 +117,7 @@ class Scenario:
     rules: Rules = field(default_factory=Rules)
     campaign: Campaign | None = None
     warehouses: Warehouses | None = None
+    missiles: Missiles | None = None
 
     @property
     def mode(self) -> str:
@@ -157,6 +171,17 @@ def load_scenario(path: str | Path) -> Scenario:
         warehouses = Warehouses(**{**w, "mission_file": str(miz), "airbases": {k: int(v) for k, v in w["airbases"].items()}})
         warehouses.stock = airframe_stock(miz, warehouses.airbases, warehouses.ignore_types, warehouses.spawn_as)
 
+    missiles = None
+    if raw.get("missiles"):
+        m = dict(raw["missiles"])
+        if not m.get("groups"):
+            raise ValueError("missiles.groups must list the mission's missile groups")
+        targets = [Zone(name=t["name"], lat=float(t["lat"]), lng=float(t["lng"]), radius_m=float(t.get("radius_m", 0)))
+                   for t in m.pop("targets", None) or []]
+        missiles = Missiles(targets=targets, **m)
+        if not campaign:
+            raise ValueError("missiles need a campaign: strikes are ordered at the campaign's reviews")
+
     scenario = Scenario(
         name=raw.get("scenario", Path(path).stem),
         coalition=raw.get("coalition", "red"),
@@ -176,6 +201,7 @@ def load_scenario(path: str | Path) -> Scenario:
         rules=Rules(**(raw.get("rules") or {})),
         campaign=campaign,
         warehouses=warehouses,
+        missiles=missiles,
     )
     if scenario.rules.fighter_spawn not in ("ramp", "air"):
         raise ValueError("rules.fighter_spawn must be 'ramp' or 'air'")

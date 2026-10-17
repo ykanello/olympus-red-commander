@@ -197,6 +197,10 @@ def test_opening_brief_shows_forces_airframes_and_defend_zones(scenario, catalog
     assert {b["name"]: b["airframes"] for b in brief["airbases"]} == scenario.warehouses.stock
     assert [z["name"] for z in brief["defend_zones"]] == ["Abu Rudeis airport", "Abu Rudeis seaport"]
     assert {c["type"] for c in brief["menu"]} == {"MiG-29S", "Su-25T"}  # no ground units to buy
+    assert "Missiles:" in call["system"] and "Ovda" in brief["missile_intent"]
+    assert "Ovda storage 1" in [t["name"] for t in brief["strike_targets"]]
+    assert call["output_config"]["format"]["schema"]["properties"]["strikes"]["items"]["properties"]["group"]["enum"] == [
+        "Iskander-first", "Iskander-second", "Iskander-5", "Scud"]
     assert json.loads(extra["text"])["situation"]["red_ground_groups"]
 
 
@@ -300,3 +304,68 @@ def test_lost_only_when_every_commanded_group_is_gone(scenario, catalog, olympus
     cmd.tick()
     assert cmd.outcome == "lost"
 
+
+
+def test_missiles_wait_for_the_mission_strike_then_take_claudes_orders(scenario, catalog, olympus, tmp_path):
+    fake, client = olympus
+    for u in fake.units.values():
+        if u.group_name == "Scud":
+            u.ammo = {"Scud_B": 1}
+    second = fake.add(category="GroundUnit", coalition=1, name="Scud_B", group_name="Scud", lat=28.331, lng=33.081, is_leader=False,
+                      ammo={"Scud_B": 1})
+    reports = []
+    strike = {"group": "Scud", "target": "Ovda storage 1", "rounds": 1, "reason": "Finish the ammunition storage"}
+
+    def replanner(report):
+        reports.append(report)
+        return CampaignPlan.from_json({"summary": "Ovda still flies: strike it again.", "orders": [], "air": [], "strikes": [strike]},
+                                      "Abu Rudeis")
+
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T", event_log=tmp_path / "e.jsonl", work_dir=tmp_path,
+                            replanner=replanner, review_async=False)
+    cmd.execute(CampaignPlan.from_json({"summary": "Wait.", "orders": [], "air": []}, "Abu Rudeis"))
+    assert cmd.batteries["Scud"]["status"] == "waiting for the mission's strike" and cmd.batteries["Scud"]["missiles_left"] == 2
+    # Before the mission's strike, Claude cannot use the battery.
+    report = cmd.situation(client.get_units())
+    plan = CampaignPlan.from_json({"summary": "", "strikes": [strike]}, "Abu Rudeis")
+    errors, _ = validate_campaign(plan, scenario, catalog, None, ["Ground-3"], None, situation=report)
+    assert errors == ["Strike by Scud: the battery is waiting for the mission's strike, not ready"]
+
+    # The mission's strike: one Scud launches; three quiet minutes later the battery is Claude's, and that calls a review.
+    second.ammo = {"Scud_B": 0}
+    cmd.tick()
+    assert cmd.batteries["Scud"]["status"] == "firing" and not reports
+    cmd.batteries["Scud"]["last_launch"] -= 200
+    cmd.last_review -= 300
+    fake.commands.clear()
+    cmd.tick()
+    assert len(reports) == 1 and "missiles_ready" in reports[0]["why_now"]
+    battery = next(b for b in reports[0]["missile_batteries"] if b["group"] == "Scud")
+    assert battery["status"] == "ready" and battery["missiles_left"] == 1 and battery["range_km"] == 300
+    # The review's strike goes out as a FireAtPoint task for that group, with its rounds.
+    files = [b["filePath"] for n, b in fake.commands if n == "executeFile"]
+    assert len(files) == 1
+    lua = open(files[0], encoding="utf-8").read()
+    assert 'Group.getByName("Scud")' in lua and "FireAtPoint" in lua and "expendQty = 1" in lua and "29.968100, 34.962000" in lua
+    assert cmd.batteries["Scud"]["status"] == "firing"
+
+    # Too far, unknown target, too many rounds: back to Claude for repair.
+    report = cmd.situation(client.get_units())
+    next(b for b in report["missile_batteries"] if b["group"] == "Scud")["status"] = "ready"
+    bad = CampaignPlan.from_json({"summary": "", "strikes": [{**strike, "rounds": 3}, {**strike, "target": "Cairo"}]}, "Abu Rudeis")
+    text = " | ".join(validate_campaign(bad, scenario, catalog, None, ["Ground-3"], None, situation=report)[0])
+    for expected in ["3 rounds, it has 1 missiles left", "'Cairo' is neither", "only one strike order at a time"]:
+        assert expected in text
+
+    # No strike close to Red ground units.
+    cmd.batteries["Scud"]["status"] = "ready"
+    for u in fake.units.values():
+        if u.group_name == "Ground-3":
+            u.lat, u.lng = 28.6470, 33.9950
+    fake.commands.clear()
+    cmd._strike(CampaignPlan.from_json({"summary": "", "strikes": [{**strike, "target": "Blue firebase west of St Catherine"}]},
+                                       "Abu Rudeis").strikes[0])
+    assert "executeFile" not in fake.names_sent()
+    events = [json.loads(l) for l in (tmp_path / "e.jsonl").read_text().splitlines()]
+    assert events[-1]["event"] == "strike_refused" and "Red ground units within 2000 m" in events[-1]["why"]
+    assert {"missile_launch", "missiles_ready", "missile_strike"} <= {e["event"] for e in events}

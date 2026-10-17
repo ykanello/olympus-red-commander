@@ -1,8 +1,8 @@
 # Sinai Base Mission: Red holds Abu Rudeis (airport and seaport) and takes St Catherine from Blue.
 # Red spawns no ground units: Claude commands the ground groups already in the mission, listed under command_groups.
 # Red aircraft fly only from Red's airbases, and only the airframes each one's warehouse holds in the mission file.
-# Everything else Red has is left to the mission: Skynet runs the SAMs and radars, the triggers run the Iskander and
-# Scud strike on Ovda, and the ships, AAA and naval guns stay as placed.
+# Skynet runs the SAMs and radars, the triggers fire the opening Iskander and Scud strike on Ovda, and Claude then decides
+# where the missiles left go. The ships, AAA and naval guns stay as placed.
 scenario: sinai-st-catherine
 coalition: red
 era: null                        # every era: the mission decides what Red has
@@ -42,6 +42,33 @@ warehouses:
   ignore_types: [F-100D, F-14A-95-GR, F-14BU, VSN_F104C]
   spawn_as:                      # warehouse type: the Olympus type spawned for it (the stock still counts down)
     MiG-29 Fulcrum: MiG-29A
+
+missiles:
+  # The mission fires these at Ovda first (its triggers: the escort reaches the zone, the supply trucks arrive, the launchers
+  # come on). Claude gets each group once it has stopped launching, and decides where the rest go.
+  groups: [Iskander-first, Iskander-second, Iskander-5, Scud]
+  intent: >-
+    Red saw Blue's air group arrive at Ovda and aimed the opening strike at Ovda's ammunition and fuel storage. The aim of
+    every strike is to take away Blue's ability to attack St Catherine or defend it. Strike Ovda again only if Blue still
+    operates from it; otherwise turn the missiles on St Catherine and the Blue forces around it.
+  wait_for_mission_strike: true
+  quiet_minutes: 3                 # no launch for this long: that group's strike is over and it is Claude's
+  release_after_minutes: 60        # if a group has not launched by then (the trigger chain broke), Claude gets it anyway
+  no_fire_near_friendly_m: 2000    # no strike within this distance of Red ground units
+  range_km: { CHAP_9K720_HE: 500, Scud_B: 300 }
+  targets:
+    # The mission's own aim points at Ovda: the ammunition and fuel storage, north to south.
+    - { name: Ovda storage 1, lat: 29.9681, lng: 34.9620 }   # the Scuds' aim point
+    - { name: Ovda storage 2, lat: 29.9535, lng: 34.9495 }
+    - { name: Ovda storage 3, lat: 29.9349, lng: 34.9453 }
+    - { name: Ovda storage 4, lat: 29.9315, lng: 34.9518 }
+    - { name: Ovda storage 5, lat: 29.9287, lng: 34.9492 }
+    - { name: Ovda storage 6, lat: 29.9287, lng: 34.9445 }
+    - { name: Ovda storage 7, lat: 29.9274, lng: 34.9439 }
+    - { name: Ovda storage 8, lat: 29.9150, lng: 34.9443 }
+    - { name: Ovda storage 9, lat: 29.9048, lng: 34.9390 }
+    - { name: St Catherine helicopter ramp, lat: 28.6843, lng: 34.0611 }
+    - { name: Blue firebase west of St Catherine, lat: 28.6468, lng: 33.9942 }   # the M-109 and its camp
 
 catalog:
   allow_mods: false

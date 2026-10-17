@@ -63,6 +63,7 @@ class Unit:
     alarm_state: str = "auto"
     roe: str = ""
     contacts: list[Contact] = field(default_factory=list)
+    ammo: dict[str, int] = field(default_factory=dict)  # weapon name -> rounds left
 
 
 class _Reader:
@@ -167,8 +168,13 @@ def _read_datum(r: _Reader, index: int, u: Unit) -> None:
         r.skip(6)  # radio: uint, uchar, uchar
     elif index == 42:
         r.skip(5)  # general settings: 5 bools
-    elif index == 43:
-        r.skip_vector(38)  # ammo: ushort, char[33], 3 uchar
+    elif index == 43:  # ammo: ushort quantity, char[33] name, uchar guidance, category, missile category
+        u.ammo = {}
+        for _ in range(r.u16()):
+            quantity = r.u16()
+            name = r.buf[r.pos:r.pos + 33].split(b"\0", 1)[0].decode("utf-8", errors="ignore")
+            r.skip(36)
+            u.ammo[name] = u.ammo.get(name, 0) + quantity
     elif index == 44:
         u.contacts = [Contact(r.u32(), r.u8()) for _ in range(r.u16())]
     elif index == 45:

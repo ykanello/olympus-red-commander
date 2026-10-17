@@ -30,6 +30,7 @@ class FakeUnit:
     alive: bool = True
     is_leader: bool = True
     contacts: list[int] = field(default_factory=list)
+    ammo: dict[str, int] = field(default_factory=lambda: {"R-73": 4})
 
 
 def _s(index: int, text: str) -> bytes:
@@ -50,7 +51,7 @@ def encode_unit(u: FakeUnit) -> bytes:
     out += struct.pack("<Bdddd", 18, u.lat, u.lng, u.alt, 0.0)
     out += struct.pack("<Bd", 22, 1.5)
     out += struct.pack("<B?BcI", 40, True, 40, b"X", 0)[:8]  # TACAN, 7 bytes after the index
-    out += struct.pack("<BH", 43, 1) + struct.pack("<H33sBBB", 4, b"R-73", 1, 1, 1)  # one ammo entry
+    out += struct.pack("<BH", 43, len(u.ammo)) + b"".join(struct.pack("<H33sBBB", n, w.encode(), 1, 1, 1) for w, n in u.ammo.items())
     out += struct.pack("<BH", 44, len(u.contacts)) + b"".join(struct.pack("<IB", c, 4) for c in u.contacts)
     out += struct.pack("<B?", 46, u.is_leader)
     out += struct.pack("<BB", 50, 100)
@@ -102,8 +103,9 @@ class FakeOlympus:
                     self._spawn(body, "GroundUnit")
                 elif name == "spawnAircrafts":
                     self._spawn(body, "Aircraft")
-                elif name == "executeFile" and self.terrain is not None:
-                    self._run_terrain_probe(body["filePath"])
+                elif name == "executeFile" and "terrain probe" in open(body["filePath"], encoding="utf-8").read():
+                    if self.terrain is not None:
+                        self._run_terrain_probe(body["filePath"])
             return {"commandHash": f"h{next(self._hashes)}"}
 
     def _run_terrain_probe(self, path: str) -> None:

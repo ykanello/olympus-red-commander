@@ -16,7 +16,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable
 
-from . import geo
+from . import geo, missiles
 from .catalog import ARTILLERY_CLASSES, Catalog
 from .commander import GROUND_CATEGORIES, AlertSlot, Commander, SpawnedGroup
 from .olympus import Unit
@@ -31,7 +31,10 @@ ARRIVED_M = 500  # a group this close to the end of its route has arrived
 COLUMN_SPACING_M = 35  # between vehicles of a convoy at the staging area
 SLOT_SPACING_M = 250  # between convoys at the staging area
 GROUND_ROLES = ("convoy", "artillery")
-REVIEW_EVENTS = {"group_lost", "arrived", "hold_started", "hold_broken", "target_taken", "campaign_lost", "defence_threatened"}
+REVIEW_EVENTS = {"group_lost", "arrived", "hold_started", "hold_broken", "target_taken", "campaign_lost", "defence_threatened",
+                 "missiles_ready"}
+WAITING, FIRING, READY, EMPTY, GONE, ABSENT = (
+    "waiting for the mission's strike", "firing", "ready", "no missiles left", "destroyed", "not in the mission (yet)")
 MISSION_ORDERS = "mission orders"  # status of a mission group Claude has not given an order yet
 AIR_ROLES = ("sweep", "intercept", "cas")
 
@@ -74,11 +77,17 @@ Events in the situation report are about your own Red groups unless they say oth
 You are asked for the opening orders, then for a review every replan_minutes and after big events (a group lost or arriving, a defend zone threatened, the hold starting or breaking). Each time return the same structure: summary is your assessment in two or three sentences, orders are for your ground groups, air adds air taskings from the airframes left. Return empty lists when nothing should change. Keep every reason to one line."""
 
 
+MISSILE_NOTES = """
+
+Missiles: missile_batteries are ballistic missile launchers already in the mission (missile_intent says what they are for). A battery takes your orders only once its status is ready: until then the mission fires its own strike with it. strikes fire a ready battery at one of strike_targets (by name) or at a detected enemy ground unit ("enemy <id>"), rounds being the missiles it fires. Missiles left are few and gone once fired, they need several minutes to arrive, and you get no damage report: judge from what Red sees afterwards (for example whether enemy aircraft still come from an airbase you struck) before striking again or turning to another target. A strike is refused if Red ground units are close to the aim point."""
+
+
 def campaign_prompt(scenario: Scenario) -> str:
     camp = scenario.campaign
+    notes = MISSILE_NOTES if scenario.missiles else ""
     if not camp.spawn_ground:
-        return COMMAND_PROMPT
-    prompt = CAMPAIGN_PROMPT
+        return COMMAND_PROMPT + notes
+    prompt = CAMPAIGN_PROMPT + notes
     if camp.command_groups:
         prompt += "\n\nYou also command ground groups that were already in the mission; they are in red_ground_groups from the start. Give them orders like any other group; return sends them back to where they started."
     if scenario.warehouses:
@@ -126,12 +135,21 @@ class Order:
 
 
 @dataclass
+class Strike:
+    group: str
+    target: str  # a strike target's name, or "enemy <unit id>"
+    rounds: int
+    reason: str
+
+
+@dataclass
 class CampaignPlan:
     summary: str
     convoys: list[Convoy] = field(default_factory=list)
     artillery: list[Battery] = field(default_factory=list)
     air: list[FighterTasking] = field(default_factory=list)
     orders: list[Order] = field(default_factory=list)
+    strikes: list[Strike] = field(default_factory=list)
 
     @classmethod
     def from_json(cls, data: dict, hq: str) -> "CampaignPlan":
@@ -141,6 +159,7 @@ class CampaignPlan:
             artillery=[Battery(**cleaned(b)) for b in data.get("artillery", [])],
             air=[FighterTasking(**{"sweep_route": [], **cleaned(a), "airbase": a.get("airbase") or hq}) for a in data.get("air", [])],
             orders=[Order(**{"route": [], "reason": "", **cleaned(o)}) for o in data.get("orders", [])],
+            strikes=[Strike(**{"reason": "", **cleaned(st)}) for st in data.get("strikes", [])],
         )
 
     def cost(self, catalog: Catalog) -> int:
@@ -163,11 +182,12 @@ def convoy_types(catalog: Catalog) -> list[str]:
 
 
 def campaign_schema(catalog: Catalog, review: bool = False, ground: bool = True, orders: bool = False,
-                    airbases: list[str] | None = None) -> dict:
+                    airbases: list[str] | None = None, missile_groups: list[str] | None = None) -> dict:
     """Structured-output schema for the opening plan, or for a review.
 
     ground: offer convoys and artillery to buy. orders: let the opening give orders (to the mission's own groups).
     airbases: each air tasking names one of these (warehouse mode); without, all aircraft fly from the HQ.
+    missile_groups: the mission's missile groups Claude can order strikes from.
     The review schema is the same all mission (group names are checked by validate_campaign, not listed here),
     so it does not change the request from one review to the next and the cached brief stays valid.
     """
@@ -237,16 +257,29 @@ def campaign_schema(catalog: Catalog, review: bool = False, ground: bool = True,
             "required": ["group", "action", "route", "reason"],
             "additionalProperties": False,
         }}
+    if missile_groups:
+        properties["strikes"] = {"type": "array", "items": {
+            "type": "object",
+            "properties": {
+                "group": {"type": "string", "enum": missile_groups},
+                "target": {"type": "string", "description": "Name of one of strike_targets, or 'enemy <id>' for a detected enemy ground unit"},
+                "rounds": {"type": "integer", "description": "Missiles to fire"},
+                "reason": {"type": "string"},
+            },
+            "required": ["group", "target", "rounds", "reason"],
+            "additionalProperties": False,
+        }}
     return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
 
 def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, points: float | None,
                       existing: list[str] | None = None, airframes: dict[str, dict[str, int]] | None = None,
-                      opening: bool | None = None) -> tuple[list[str], list[str]]:
+                      opening: bool | None = None, situation: dict | None = None) -> tuple[list[str], list[str]]:
     """Returns (errors, warnings).
 
     points: None when there is no budget. existing: labels of ground groups already in the field (at reviews, or the
     mission's own groups at the opening). airframes: {airbase: {type: count}} left in the warehouses, if they set the limit.
+    situation: the report the plan answers, for checking strikes against the missile batteries and detected enemy units.
     """
     errors: list[str] = []
     warnings: list[str] = []
@@ -335,6 +368,9 @@ def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, 
                 errors.append(f"Order for '{o.group}': move needs a route")
             check_points(f"Order for '{o.group}'", o.route)
 
+    if plan.strikes:
+        errors += check_strikes(plan.strikes, scenario, situation or {})
+
     cost = plan.cost(catalog)
     if points is not None and cost > points:
         errors.append(f"This costs {cost} points, only {points:g} are available")
@@ -344,6 +380,47 @@ def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, 
         if not any(c.route and c.route[-1]["distance_km"] <= r_km for c in plan.convoys):
             warnings.append("No convoy's route ends inside the target zone")
     return errors, warnings
+
+
+def strike_point(scenario: Scenario, target: str, situation: dict) -> tuple[float, float] | None:
+    """Where a strike target is: a named strike target, or a detected enemy unit ("enemy <id>") of the situation report."""
+    named = {t.name: t for t in scenario.missiles.targets}
+    if target in named:
+        return named[target].lat, named[target].lng
+    word, _, ident = target.partition(" ")
+    if word == "enemy" and ident.isdigit():
+        for e in situation.get("detected_enemy", []):
+            if e["id"] == int(ident):
+                return to_latlng(scenario, e["position"])
+    return None
+
+
+def check_strikes(strikes: list[Strike], scenario: Scenario, situation: dict) -> list[str]:
+    errors = []
+    batteries = {b["group"]: b for b in situation.get("missile_batteries", [])}
+    used = Counter()
+    for st in strikes:
+        used[st.group] += 1
+        b = batteries.get(st.group)
+        if b is None or b["status"] != READY:
+            errors.append(f"Strike by {st.group}: the battery is {b['status'] if b else 'not available'}, not ready")
+            continue
+        if st.rounds < 1:
+            errors.append(f"Strike by {st.group}: rounds must be at least 1")
+        elif isinstance(b.get("missiles_left"), int) and st.rounds > b["missiles_left"]:
+            errors.append(f"Strike by {st.group}: {st.rounds} rounds, it has {b['missiles_left']} missiles left")
+        point = strike_point(scenario, st.target, situation)
+        if point is None:
+            errors.append(f"Strike by {st.group}: '{st.target}' is neither a strike target nor a detected enemy ('enemy <id>')")
+            continue
+        reach = b.get("range_km") or 0
+        km = geo.distance_m(*to_latlng(scenario, b["position"]), *point) / 1000
+        if reach and km > reach:
+            errors.append(f"Strike by {st.group}: {st.target} is {km:.0f} km away, beyond its {reach:g} km range")
+    for group, n in used.items():
+        if n > 1:
+            errors.append(f"{group} can take only one strike order at a time")
+    return errors
 
 
 # ---------- Claude ----------
@@ -367,6 +444,9 @@ class CampaignPlanner(Planner):
             brief["other_red_airbases"] = [{"name": n, **where(*ll)} for n, ll in sorted(red_airbases.items()) if n != camp.hq]
         if camp.defend:
             brief["defend_zones"] = [{"name": z.name, "radius_m": z.radius_m, **where(z.lat, z.lng)} for z in camp.defend]
+        if scenario.missiles:
+            brief["missile_intent"] = scenario.missiles.intent
+            brief["strike_targets"] = [{"name": t.name, **where(t.lat, t.lng)} for t in scenario.missiles.targets]
         brief["rules"] = {
             "hold_minutes": camp.hold_minutes, "replan_minutes": camp.replan_minutes,
             "max_group_units": camp.max_group_units, "protect_radius_km": camp.protect_radius_km,
@@ -383,7 +463,8 @@ class CampaignPlanner(Planner):
     def _schema(self, scenario: Scenario, catalog: Catalog, review: bool) -> dict:
         camp, w = scenario.campaign, scenario.warehouses
         return campaign_schema(catalog, review=review, ground=camp.spawn_ground, orders=bool(camp.command_groups),
-                               airbases=sorted(w.stock) if w else None)
+                               airbases=sorted(w.stock) if w else None,
+                               missile_groups=scenario.missiles.groups if scenario.missiles else None)
 
     def plan_campaign(self, scenario: Scenario, catalog: Catalog, red_airbases: dict,
                       staging: tuple[float, float], situation: dict | None = None) -> tuple[CampaignPlan, list[str]]:
@@ -402,7 +483,7 @@ class CampaignPlanner(Planner):
         def check(data):
             plan = CampaignPlan.from_json(data, camp.hq)
             return (plan, *validate_campaign(plan, scenario, catalog, scenario.budget_points if camp.spawn_ground else None,
-                                             labels, airframes, opening=True))
+                                             labels, airframes, opening=True, situation=situation))
         return self.solve(brief, self._schema(scenario, catalog, review=False), check, campaign_prompt(scenario), extra=extra,
                           what="opening plan")
 
@@ -417,7 +498,7 @@ class CampaignPlanner(Planner):
         def check(data):
             plan = CampaignPlan.from_json(data, scenario.campaign.hq)
             return (plan, *validate_campaign(plan, scenario, catalog, report.get("points_left"), labels,
-                                             report.get("airframes_left"), opening=False))
+                                             report.get("airframes_left"), opening=False, situation=report))
         plan, _ = self.solve(brief, self._schema(scenario, catalog, review=True), check, campaign_prompt(scenario), extra=extra,
                              what="review")
         return plan
@@ -441,6 +522,7 @@ class CampaignCommander(Commander):
     airframes_left: dict = field(default_factory=dict)  # {airbase: {type: count}}, when the warehouses set the limit
     awaiting: list = field(default_factory=list)  # mission groups to command that are not (yet) in the mission
     threatened: list = field(default_factory=list)  # defend zones with detected enemy ground units inside
+    batteries: dict = field(default_factory=dict)  # missile group -> {status, missiles_left, launched, last_launch, seen}
     _review: concurrent.futures.Future | None = None
     _executor: concurrent.futures.ThreadPoolExecutor | None = None
 
@@ -465,7 +547,7 @@ class CampaignCommander(Commander):
             "points_left": self.points_left, "started_at": self.started_at, "hold_since": self.hold_since,
             "outcome": self.outcome, "last_review": self.last_review, "assessments": self.assessments,
             "spawn_slot": self.spawn_slot, "airframes_left": self.airframes_left, "awaiting": self.awaiting,
-            "threatened": self.threatened}}
+            "threatened": self.threatened, "batteries": self.batteries}}
 
     def restore(self, state: dict) -> None:
         super().restore(state)
@@ -483,6 +565,11 @@ class CampaignCommander(Commander):
             self.airframes_left = {base: dict(types) for base, types in self.scenario.warehouses.stock.items()}
         self.awaiting = list(self.camp.command_groups)
         self._adopt(units)
+        if self.scenario.missiles:
+            first = WAITING if self.scenario.missiles.wait_for_mission_strike else READY
+            self.batteries = {g: {"status": first, "missiles_left": None, "launched": 0, "last_launch": 0.0, "seen": False}
+                              for g in self.scenario.missiles.groups}
+            self._watch_missiles(units)
         if self.awaiting:
             log.warning("Not in the mission (yet): %s. They are taken under command if they appear, e.g. after a late activation.",
                         ", ".join(self.awaiting))
@@ -542,6 +629,8 @@ class CampaignCommander(Commander):
                 self._event("alert", type=a.type, airbase=a.airbase, count=a.count, role=a.role, reason=a.reason)
         for order in plan.orders:
             self._order(order)
+        for st in plan.strikes:
+            self._strike(st)
 
     def _spawn_column(self, label: str, types: list[str], role: str, depart_min: float,
                       route: list[tuple[float, float]], reason: str) -> None:
@@ -615,6 +704,8 @@ class CampaignCommander(Commander):
         enemy_ground = self.detected_enemy_ground(units)
         self._air_response(units, "cas", enemy_ground)
         self._watch_defence(enemy_ground)
+        if self.batteries:
+            self._watch_missiles(units)
         self._referee(units)
         self._maybe_review(units)
 
@@ -643,6 +734,76 @@ class CampaignCommander(Commander):
             elif not inside and z.name in self.threatened:
                 self.threatened.remove(z.name)
                 self._event("defence_clear", zone=z.name)
+
+    # ----- missiles -----
+    def _watch_missiles(self, units: dict[int, Unit]) -> None:
+        """Follow each missile group's launches. Its strike is over once it has not launched for quiet_minutes."""
+        m, now = self.scenario.missiles, time.time()
+        for name, b in self.batteries.items():
+            members = [u for u in units.values() if u.group_name == name and u.alive]
+            if not members:
+                if b["seen"] and b["status"] != GONE:
+                    b["status"] = GONE
+                    self._event("missile_battery_lost", group=name, side=f"{self.scenario.coalition} (yours)")
+                elif not b["seen"]:
+                    b["status"] = ABSENT if b["status"] in (READY, ABSENT) or not m.wait_for_mission_strike else WAITING
+                continue
+            if not b["seen"] and b["status"] == ABSENT:
+                b["status"] = READY
+            b["seen"] = True
+            left = sum(n for u in members for n in u.ammo.values()) if any(u.ammo for u in members) else None
+            before = b["missiles_left"]
+            if left is not None and before is not None and left < before:
+                b["launched"] += before - left
+                b["last_launch"] = now
+                if b["status"] == WAITING:
+                    b["status"] = FIRING
+                self._event("missile_launch", group=name, missiles=before - left, missiles_left=left)
+            b["missiles_left"] = left
+            quiet = now - b["last_launch"] >= m.quiet_minutes * 60
+            if left == 0:
+                b["status"] = EMPTY
+            elif b["status"] == FIRING and quiet:
+                b["status"] = READY
+                self._event("missiles_ready", group=name, missiles_left=left, launched=b["launched"])
+            elif (b["status"] == WAITING and m.release_after_minutes is not None
+                  and now - self.started_at >= m.release_after_minutes * 60):
+                b["status"] = READY
+                self._event("missiles_ready", group=name, missiles_left=left, launched=b["launched"], released_after_min=m.release_after_minutes)
+
+    def _range_km(self, group: str, units: dict[int, Unit]) -> float:
+        types = {u.name for u in units.values() if u.group_name == group and u.alive}
+        ranges = self.scenario.missiles.range_km
+        return max((ranges.get(t) or self.catalog.describe(t).engagement_range_m / 1000 for t in types), default=0)
+
+    def _strike(self, st: Strike) -> None:
+        units = self.client.get_units()
+        b = self.batteries.get(st.group)
+        leader = self._leader(units, st.group)
+        point = strike_point(self.scenario, st.target, {"detected_enemy": [
+            {"id": t.id, "position": self._where(t.lat, t.lng)} for t in self.detected_enemy_ground(units).values()]})
+        refuse = lambda why: self._event("strike_refused", group=st.group, target=st.target, why=why)
+        if b is None or b["status"] != READY or leader is None:
+            return refuse(f"the battery is {b['status'] if b else 'unknown'}")
+        if point is None:
+            return refuse("no such target, or the enemy unit is no longer detected")
+        reach = self._range_km(st.group, units)
+        km = geo.distance_m(leader.lat, leader.lng, *point) / 1000
+        if reach and km > reach:
+            return refuse(f"{km:.0f} km away, beyond its {reach:g} km range")
+        guard = self.scenario.missiles.no_fire_near_friendly_m
+        if any(u.alive and u.coalition == self.scenario.coalition and u.category in GROUND_CATEGORIES
+               and geo.distance_m(u.lat, u.lng, *point) <= guard for u in units.values()):
+            return refuse(f"Red ground units within {guard:g} m of the aim point")
+        missiles.fire(self.client, st.group, *point, st.rounds, self.work_dir)
+        b["status"], b["last_launch"] = FIRING, time.time()
+        self._event("missile_strike", group=st.group, target=st.target, rounds=st.rounds, km=round(km), reason=st.reason)
+        self._marker(*point, f"Red missile strike by {st.group}: {st.target}")
+
+    def _where(self, lat: float, lng: float) -> dict:
+        o = self.scenario.objective
+        return {"bearing_deg": round(geo.bearing_deg(o.lat, o.lng, lat, lng)),
+                "distance_km": round(geo.distance_m(o.lat, o.lng, lat, lng) / 1000, 1)}
 
     def _referee(self, units: dict[int, Unit]) -> None:
         """Decides the outcome from the whole picture, not just what Red detects."""
@@ -776,4 +937,15 @@ class CampaignCommander(Commander):
             report["airframes_left"] = {b: {t: n for t, n in types.items() if n > 0} for b, types in self.airframes_left.items()}
         if self.awaiting:
             report["groups_not_in_mission_yet"] = self.awaiting
+        if self.batteries:
+            report["missile_batteries"] = []
+            for name, b in self.batteries.items():
+                entry = {"group": name, "status": b["status"],
+                         "missiles_left": b["missiles_left"] if b["missiles_left"] is not None else "unknown",
+                         "launched_so_far": b["launched"]}
+                leader = self._leader(units, name)
+                if leader:
+                    entry.update(position=where(leader), range_km=round(self._range_km(name, units)),
+                                 launchers=dict(Counter(u.name for u in units.values() if u.group_name == name and u.alive)))
+                report["missile_batteries"].append(entry)
         return report

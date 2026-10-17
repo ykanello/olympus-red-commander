@@ -139,6 +139,15 @@ Before the first run, set `warehouses.mission_file` to the .miz you run (on the 
   `spawn_as` spawns an Olympus type for a warehouse type Olympus does not have (the warehouse's count still applies). The
   bridge warns at start about warehouse types it cannot fly.
 - Red loses when every commanded ground group is gone. It wins by holding the target as in the offensive campaign.
+- **`missiles`** hands the mission's ballistic missile groups to Claude. With `wait_for_mission_strike`, the mission fires
+  first (in the Sinai mission, its triggers fire on Ovda); a group becomes Claude's once it has not launched for
+  `quiet_minutes` (the bridge follows each launcher's ammunition through Olympus), or after `release_after_minutes`.
+  Claude then orders `strikes` at one of the named `targets` or at a detected Blue ground unit, with a number of rounds.
+  The bridge gives the group a DCS FireAtPoint task through a Lua file run by Olympus (as the terrain check does), and
+  refuses a strike out of range (`range_km` per launcher type, where Olympus has none) or within
+  `no_fire_near_friendly_m` of Red ground units. `intent` tells Claude what the strikes are for. Events: `missile_launch`,
+  `missiles_ready`, `missile_strike`, `strike_refused`. Not yet verified in DCS: that Olympus reports the launchers'
+  missiles, and how DCS counts `expendQty` for a battery of several launchers.
 
 ## Scenario files
 

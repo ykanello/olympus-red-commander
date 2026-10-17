@@ -112,6 +112,47 @@ python -m bridge run  scenarios/take-kutaisi.yaml --no-reviews   # opening plan 
 Every step goes to the events log: `spawned`, `depart`, `arrived`, `scramble` (with `role: cas` for ground attack),
 `fire_mission`, `review` (Claude's assessment), `order`, `hold_started`, `hold_broken`, `target_taken`, `campaign_lost`.
 
+## Commanding the mission's own forces
+
+`scenarios/sinai-st-catherine.yaml` runs Red in a mission built in the editor (the Sinai Base Mission): Red spawns no ground
+units, commands ground groups already in the mission, and flies only the aircraft its airbases' warehouses hold.
+
+```
+python -m bridge plan scenarios/sinai-st-catherine.yaml   # the opening orders, printed; changes nothing in the mission
+python -m bridge run  scenarios/sinai-st-catherine.yaml
+```
+
+Before the first run, set `warehouses.mission_file` to the .miz you run (on the DCS machine).
+
+- **`campaign.spawn_ground: false`** turns off buying and spawning ground units; no `budget_points` needed.
+- **`campaign.command_groups`** lists the mission editor names of the Red ground groups Claude commands. Each keeps its
+  mission route (or stays put) until Claude orders it to `move`, `hold` or `return` (to where it started). A group that is
+  not in the mission yet, such as a late activation, is taken under command when it appears. Every other Red group (SAMs,
+  radars, missile launchers, ships) is left to the mission and its scripts. Groups with artillery fire on detected Blue
+  ground units within range, as in the other modes.
+- **`campaign.defend`** lists zones Red must hold while it attacks. A detected Blue ground unit inside one triggers a
+  review (`defence_threatened` in the events log), and alert aircraft also launch against threats within
+  `scramble_when_contact_within_km` of a defend zone.
+- **`warehouses`** limits aircraft to the airframes in the mission's warehouses. `airbases` maps each Red airbase (its name
+  in Olympus) to its airport ID in the mission. Each air tasking names its airbase and spends airframes from it for good;
+  aircraft that land are not counted back. Aircraft then cost no points. `ignore_types` leaves warehouse types out, and
+  `spawn_as` spawns an Olympus type for a warehouse type Olympus does not have (the warehouse's count still applies). The
+  bridge warns at start about warehouse types it cannot fly.
+- **`campaign.notes`** is the commander's intelligence and intent in plain words (in the Sinai mission: how Blue has to
+  win, and what Red must stop). Claude gets it in its brief and plans by it.
+- **`rules.priority_air_targets`** lists enemy aircraft types that alert pairs go after before anything else (the
+  C-130 in the Sinai mission), in every mode.
+- Red loses when every commanded ground group is gone. It wins by holding the target as in the offensive campaign.
+- **`missiles`** hands the mission's ballistic missile groups to Claude. With `wait_for_mission_strike`, the mission fires
+  first (in the Sinai mission, its triggers fire on Ovda); a group becomes Claude's once it has not launched for
+  `quiet_minutes` (the bridge follows each launcher's ammunition through Olympus), or after `release_after_minutes`.
+  Claude then orders `strikes` at one of the named `targets` or at a detected Blue ground unit, with a number of rounds.
+  The bridge gives the group a DCS FireAtPoint task through a Lua file run by Olympus (as the terrain check does), and
+  refuses a strike out of range (`range_km` per launcher type, where Olympus has none) or within
+  `no_fire_near_friendly_m` of Red ground units. `intent` tells Claude what the strikes are for. Events: `missile_launch`,
+  `missiles_ready`, `missile_strike`, `strike_refused`. Not yet verified in DCS: that Olympus reports the launchers'
+  missiles, and how DCS counts `expendQty` for a battery of several launchers.
+
 ## Scenario files
 
 - `scenarios/defend-kutaisi.yaml`: an exact inventory. Claude decides only where things go and what the fighters do.
@@ -119,6 +160,7 @@ Every step goes to the events log: `spawned`, `depart`, `arrived`, `scramble` (w
 - `scenarios/defend-kutaisi-combined.yaml`: the same, with tanks, APCs and artillery on the menu as well.
   Claude decides how much of the budget goes to the ground threat.
 - `scenarios/take-kutaisi.yaml`: the offensive campaign described above.
+- `scenarios/sinai-st-catherine.yaml`: the Sinai Base Mission, commanding the mission's own forces (above).
 
 Without an `inventory`, the menu is built from the Olympus unit databases on your server: every enabled Red unit of the
 listed `era`, narrowed by `catalog.classes` if you give them.

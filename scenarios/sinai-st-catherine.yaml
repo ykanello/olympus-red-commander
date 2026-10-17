@@ -1,0 +1,92 @@
+# Sinai Base Mission: Red holds Abu Rudeis (airport and seaport) and takes St Catherine from Blue.
+# Red spawns no ground units: Claude commands the ground groups already in the mission, listed under command_groups.
+# Red aircraft fly only from Red's airbases, and only the airframes each one's warehouse holds in the mission file.
+# Skynet runs the SAMs and radars, the triggers fire the opening Iskander and Scud strike on Ovda, and Claude then decides
+# where the missiles left go. The ships, AAA and naval guns stay as placed.
+scenario: sinai-st-catherine
+coalition: red
+era: null                        # every era: the mission decides what Red has
+
+campaign:
+  hq: Abu Rudeis                 # Red airbase named as Red's HQ in Claude's brief
+  spawn_ground: false            # do not deploy extra ground units
+  command_groups:                # mission editor group names; every other Red group is left to the mission
+    - Ground-3                   # 2 T-55, 2 BTR-82A, 8 km west of St Catherine
+    - Insurgents                 # 12 DShK technicals, 10 km west of St Catherine (their mission route runs into the airport)
+    - Red RT                     # 2 Dana howitzers and a GAZ-66, 29 km east of Abu Rudeis
+    - Red RT-1                   # Type 59 tank and an M1296 Stryker, same place
+    - Insurgents-1               # Igla team and 2 DShK technicals, same place
+    - Infantry-1                 # 7 riflemen at Abu Rudeis airport
+  defend:                        # Red must hold these while it attacks
+    - { name: Abu Rudeis airport, lat: 28.8995, lng: 33.2023, radius_m: 3000 }
+    - { name: Abu Rudeis seaport, lat: 28.940, lng: 33.170, radius_m: 5000 }   # the tanker anchorage up to the naval guns
+    - { name: Missile base (El Tor), lat: 28.325, lng: 33.083, radius_m: 4000 } # the Iskander and Scud launchers
+  notes: >-
+    Blue has no AWACS and no radars, only its aircraft, flying from Ovda. To win, Blue must hold St Catherine, win the
+    air over Abu Rudeis, then land a C-130 near Abu Rudeis carrying an MLRS to destroy the missile base at El Tor.
+    Abu Rudeis is the key: keep Blue from controlling the air over it and shoot down any transport heading there. Red's
+    long-range missile fighters are few (the 4 MiG-29S), so spend them on what matters. Use the Su-25s and Su-24Ms as
+    close air support against Blue ground units that threaten Abu Rudeis, the missile base or Red's forces at St Catherine.
+  hold_minutes: 10               # Red takes St Catherine by holding it this long with no Blue ground units inside
+  replan_minutes: 10             # Claude reviews this often...
+  min_replan_gap_minutes: 2      # ...and after big events (a group lost, a defend zone threatened), never more often than this
+  protect_radius_km: 25          # alert aircraft launch against threats this close to Red's commanded ground groups
+
+objective:                       # the target zone: St Catherine airport and the ground around it
+  name: St Catherine
+  location: { lat: 28.6852, lng: 34.0626 }
+  radius_m: 3000
+
+warehouses:
+  # The mission file the warehouses are read from: the .miz you run, on this machine.
+  mission_file: "C:/Users/YOU/Saved Games/DCS/Missions/Sinai Base Mission.miz"
+  airbases:                      # Red airbase as Olympus names it: its airport ID in the mission's warehouses
+    Abu Rudeis: 26                       # 4 MiG-29 (9.12), 2 Su-25
+    Sharm El Sheikh International Airport: 42   # 8 Su-24M
+    Hurghada International Airport: 38   # 18 MiG-23MLD
+    Wadi Abu Rish: 43                    # 12 MiG-29 (9.12), 4 MiG-29S
+  # These four show 100 airframes at almost every airfield of the map, Blue and neutral too: warehouse defaults, not Red's air force.
+  ignore_types: [F-100D, F-14A-95-GR, F-14BU, VSN_F104C]
+  spawn_as:                      # warehouse type: the Olympus type spawned for it (the stock still counts down)
+    MiG-29 Fulcrum: MiG-29A
+
+missiles:
+  # The mission fires these at Ovda first (its triggers: the escort reaches the zone, the supply trucks arrive, the launchers
+  # come on). Claude gets each group once it has stopped launching, and decides where the rest go.
+  groups: [Iskander-first, Iskander-second, Iskander-5, Scud]
+  intent: >-
+    Red saw Blue's air group arrive at Ovda and aimed the opening strike at Ovda's ammunition and fuel storage. The aim of
+    every strike is to take away Blue's ability to attack St Catherine or defend it. Strike Ovda again only if Blue still
+    operates from it; otherwise turn the missiles on St Catherine and the Blue forces around it.
+  wait_for_mission_strike: true
+  quiet_minutes: 3                 # no launch for this long: that group's strike is over and it is Claude's
+  release_after_minutes: 60        # if a group has not launched by then (the trigger chain broke), Claude gets it anyway
+  no_fire_near_friendly_m: 2000    # no strike within this distance of Red ground units
+  range_km: { CHAP_9K720_HE: 500, Scud_B: 300 }
+  targets:
+    # The mission's own aim points at Ovda: the ammunition and fuel storage, north to south.
+    - { name: Ovda storage 1, lat: 29.9681, lng: 34.9620 }   # the Scuds' aim point
+    - { name: Ovda storage 2, lat: 29.9535, lng: 34.9495 }
+    - { name: Ovda storage 3, lat: 29.9349, lng: 34.9453 }
+    - { name: Ovda storage 4, lat: 29.9315, lng: 34.9518 }
+    - { name: Ovda storage 5, lat: 29.9287, lng: 34.9492 }
+    - { name: Ovda storage 6, lat: 29.9287, lng: 34.9445 }
+    - { name: Ovda storage 7, lat: 29.9274, lng: 34.9439 }
+    - { name: Ovda storage 8, lat: 29.9150, lng: 34.9443 }
+    - { name: Ovda storage 9, lat: 29.9048, lng: 34.9390 }
+    - { name: St Catherine helicopter ramp, lat: 28.6843, lng: 34.0611 }
+    - { name: Blue firebase west of St Catherine, lat: 28.6468, lng: 33.9942 }   # the M-109 and its camp
+
+catalog:
+  allow_mods: false
+
+rules:
+  skill: High
+  scramble_when_contact_within_km: 60   # alert aircraft launch against threats this close to St Catherine or a defend zone
+  priority_air_targets: [C-130J-30, C-130]   # alert pairs go after a transport before anything else
+  scramble_pair_size: 2
+  fighter_spawn: ramp
+  artillery_fire: true
+  fire_mission_every_s: 90
+  no_fire_near_friendly_m: 500
+  keep_sams_dark_until_km: null         # Skynet runs Red's air defence; the bridge never touches SAMs it did not spawn

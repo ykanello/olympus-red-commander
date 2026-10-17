@@ -135,17 +135,18 @@ def _walk(doc: dict, prefix: tuple):
 
 def scenario_fields(doc: dict) -> dict[str, list[Field]]:
     """The scenario's settings grouped by section, plus the rules the file leaves at their defaults."""
-    sections: dict[str, list[Field]] = {"General": [], "Objective": [], "Campaign": [], "Rules": [], "Catalog": []}
+    sections: dict[str, list[Field]] = {"General": [], "Objective": [], "Campaign": [], "Warehouses": [], "Rules": [], "Catalog": []}
     for key, value in doc.items():
-        if key in ("objective", "campaign", "rules", "catalog", "inventory"):
+        if key in ("objective", "campaign", "warehouses", "rules", "catalog", "inventory"):
             continue
         sections["General"].append(Field((key,), value, True, as_str=isinstance(value, str)))
     for name, key, defaults, skip in [("Objective", "objective", None, ()),
                                       ("Campaign", "campaign", Campaign, ("hq", "staging_name", "staging_lat", "staging_lng")),
+                                      ("Warehouses", "warehouses", None, ()),
                                       ("Rules", "rules", Rules, ()),
                                       ("Catalog", "catalog", None, ())]:
         section = doc.get(key)
-        if key == "campaign" and not section:
+        if key in ("campaign", "warehouses") and not section:
             continue
         section = section if isinstance(section, dict) else {}
         for path, value in _walk(section, (key,)):

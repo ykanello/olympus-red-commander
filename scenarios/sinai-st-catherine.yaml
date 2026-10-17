@@ -1,0 +1,57 @@
+# Sinai Base Mission: Red holds Abu Rudeis (airport and seaport) and takes St Catherine from Blue.
+# Red spawns no ground units: Claude commands the ground groups already in the mission, listed under command_groups.
+# Red aircraft fly only from Red's airbases, and only the airframes each one's warehouse holds in the mission file.
+# Everything else Red has is left to the mission: Skynet runs the SAMs and radars, the triggers run the Iskander and
+# Scud strike on Ovda, and the ships, AAA and naval guns stay as placed.
+scenario: sinai-st-catherine
+coalition: red
+era: null                        # every era: the mission decides what Red has
+
+campaign:
+  hq: Abu Rudeis                 # Red airbase named as Red's HQ in Claude's brief
+  spawn_ground: false            # do not deploy extra ground units
+  command_groups:                # mission editor group names; every other Red group is left to the mission
+    - Ground-3                   # 2 T-55, 2 BTR-82A, 8 km west of St Catherine
+    - Insurgents                 # 12 DShK technicals, 10 km west of St Catherine (their mission route runs into the airport)
+    - Red RT                     # 2 Dana howitzers and a GAZ-66, 29 km east of Abu Rudeis
+    - Red RT-1                   # Type 59 tank and an M1296 Stryker, same place
+    - Insurgents-1               # Igla team and 2 DShK technicals, same place
+    - Infantry-1                 # 7 riflemen at Abu Rudeis airport
+  defend:                        # Red must hold these while it attacks
+    - { name: Abu Rudeis airport, lat: 28.8995, lng: 33.2023, radius_m: 3000 }
+    - { name: Abu Rudeis seaport, lat: 28.940, lng: 33.170, radius_m: 5000 }   # the tanker anchorage up to the naval guns
+  hold_minutes: 10               # Red takes St Catherine by holding it this long with no Blue ground units inside
+  replan_minutes: 10             # Claude reviews this often...
+  min_replan_gap_minutes: 2      # ...and after big events (a group lost, a defend zone threatened), never more often than this
+  protect_radius_km: 25          # alert aircraft launch against threats this close to Red's commanded ground groups
+
+objective:                       # the target zone: St Catherine airport and the ground around it
+  name: St Catherine
+  location: { lat: 28.6852, lng: 34.0626 }
+  radius_m: 3000
+
+warehouses:
+  # The mission file the warehouses are read from: the .miz you run, on this machine.
+  mission_file: "C:/Users/YOU/Saved Games/DCS/Missions/Sinai Base Mission.miz"
+  airbases:                      # Red airbase as Olympus names it: its airport ID in the mission's warehouses
+    Abu Rudeis: 26                       # 4 MiG-29 (9.12), 2 Su-25
+    Sharm El Sheikh International Airport: 42   # 8 Su-24M
+    Hurghada International Airport: 38   # 18 MiG-23MLD
+    Wadi Abu Rish: 43                    # 12 MiG-29 (9.12), 4 MiG-29S
+  # These four show 100 airframes at almost every airfield of the map, Blue and neutral too: warehouse defaults, not Red's air force.
+  ignore_types: [F-100D, F-14A-95-GR, F-14BU, VSN_F104C]
+  spawn_as:                      # warehouse type: the Olympus type spawned for it (the stock still counts down)
+    MiG-29 Fulcrum: MiG-29A
+
+catalog:
+  allow_mods: false
+
+rules:
+  skill: High
+  scramble_when_contact_within_km: 60   # alert aircraft launch against threats this close to St Catherine or a defend zone
+  scramble_pair_size: 2
+  fighter_spawn: ramp
+  artillery_fire: true
+  fire_mission_every_s: 90
+  no_fire_near_friendly_m: 500
+  keep_sams_dark_until_km: null         # Skynet runs Red's air defence; the bridge never touches SAMs it did not spawn

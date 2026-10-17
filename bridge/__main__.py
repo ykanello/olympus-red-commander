@@ -73,8 +73,23 @@ def build_catalog(scenario: Scenario, olympus_dir: Path) -> Catalog:
         catalog.items = {n: i for n, i in catalog.items.items() if n in wanted}
         return catalog
     c = scenario.catalog
-    return Catalog.load(olympus_dir, scenario.coalition, eras=scenario.eras, classes=c.classes, include=c.include,
-                        exclude=c.exclude, price_overrides=c.price_overrides, class_prices=c.class_prices, allow_mods=c.allow_mods)
+    w = scenario.warehouses
+    stocked = sorted({t for types in w.stock.values() for t in types}) if w else []
+    catalog = Catalog.load(olympus_dir, scenario.coalition, eras=scenario.eras, classes=c.classes, include=c.include + stocked,
+                           exclude=c.exclude, price_overrides=c.price_overrides, class_prices=c.class_prices, allow_mods=c.allow_mods)
+    if w:
+        # Aircraft come from the warehouses: only the types they hold, and they cost no points (the stock is the limit).
+        missing = [t for t in stocked if t not in catalog or catalog[t].category != "aircraft"]
+        if missing:
+            logging.warning("Warehouse aircraft that Olympus cannot spawn as Red fighters or attack aircraft, so Red will not fly them: %s. "
+                            "Map a type to one Olympus has with warehouses.spawn_as, or leave it out with warehouses.ignore_types.", missing)
+        for name, item in list(catalog.items.items()):
+            if item.category == "aircraft":
+                if name in stocked:
+                    item.price = 0
+                else:
+                    del catalog.items[name]
+    return catalog
 
 
 def red_airbases(client: OlympusClient, coalition: str) -> dict[str, tuple[float, float]]:
@@ -113,23 +128,34 @@ def print_campaign_plan(plan: CampaignPlan, catalog: Catalog, warnings: list[str
 
 def staging_point(scenario: Scenario, bases: dict) -> tuple[float, float]:
     camp = scenario.campaign
+    side = scenario.coalition
     if camp.hq not in bases:
-        sys.exit(f"campaign.hq '{camp.hq}' is not a {scenario.coalition} airbase in this mission. "
-                 f"{scenario.coalition.capitalize()} airbases: {sorted(bases) or 'none'}")
+        sys.exit(f"campaign.hq '{camp.hq}' is not a {side} airbase in this mission. {side.capitalize()} airbases: {sorted(bases) or 'none'}")
+    unknown = [n for n in (scenario.warehouses.stock if scenario.warehouses else {}) if n not in bases]
+    if unknown:
+        sys.exit(f"warehouses.airbases {unknown} are not {side} airbases in this mission (use the names Olympus shows). "
+                 f"{side.capitalize()} airbases: {sorted(bases) or 'none'}")
     return (camp.staging_lat, camp.staging_lng) if camp.staging_lat is not None else bases[camp.hq]
 
 
 def make_campaign_plan(args, cfg: dict, scenario: Scenario, catalog: Catalog, bases: dict, log_dir: Path,
-                       usage: Usage) -> tuple[CampaignPlan, list[str]]:
+                       usage: Usage, client: OlympusClient) -> tuple[CampaignPlan, list[str]]:
     staging = staging_point(scenario, bases)
+    camp = scenario.campaign
+    situation = None
+    if camp.command_groups:  # Red's own forces in the mission, as they stand now
+        situation = CampaignCommander(client, scenario, catalog, bases).opening_report(client.get_units())
     if args.plan:
-        plan = CampaignPlan.from_json(json.loads(args.plan.read_text(encoding="utf-8")), scenario.campaign.hq)
-        errors, warnings = validate_campaign(plan, scenario, catalog, scenario.budget_points)
+        plan = CampaignPlan.from_json(json.loads(args.plan.read_text(encoding="utf-8")), camp.hq)
+        errors, warnings = validate_campaign(
+            plan, scenario, catalog, scenario.budget_points if camp.spawn_ground else None,
+            [g["name"] for g in (situation or {}).get("red_ground_groups", [])],
+            scenario.warehouses.stock if scenario.warehouses else None, opening=True)
         if errors:
             sys.exit("Saved plan is invalid: " + "; ".join(errors))
         return plan, warnings
     require_api_key()
-    plan, warnings = campaign_planner(cfg, usage).plan_campaign(scenario, catalog, bases, staging)
+    plan, warnings = campaign_planner(cfg, usage).plan_campaign(scenario, catalog, bases, staging, situation)
     save_plan(plan, scenario, log_dir)
     return plan, warnings
 
@@ -171,7 +197,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "plan":
         bases = connect(client, scenario, wait=False)
         if scenario.campaign:
-            plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir, Usage())
+            plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir, Usage(), client)
             print_campaign_plan(plan, catalog, warnings)
         else:
             plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir, Usage())
@@ -205,7 +231,7 @@ def main(argv: list[str] | None = None) -> None:
             else:
                 if plan is None or args.replan:
                     if scenario.campaign:
-                        plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir, usage)
+                        plan, warnings = make_campaign_plan(args, cfg, scenario, catalog, bases, log_dir, usage, client)
                         print_campaign_plan(plan, catalog, warnings)
                     else:
                         plan, warnings = make_plan(args, cfg, scenario, catalog, bases, log_dir, usage)

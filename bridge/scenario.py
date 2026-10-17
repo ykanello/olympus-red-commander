@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from .mission import airframe_stock
+
 
 @dataclass
 class Objective:
@@ -16,6 +18,24 @@ class Objective:
     radius_m: float = 3000
     threat_axis_deg: float | None = None
     airbase: str | None = None
+
+
+@dataclass
+class Zone:
+    name: str
+    lat: float
+    lng: float
+    radius_m: float = 3000
+
+
+@dataclass
+class Warehouses:
+    """Red aircraft fly only from these airbases, and only as many of each type as the mission's warehouses hold."""
+    airbases: dict[str, int]  # Olympus airbase name -> airport ID of its warehouse in the mission
+    mission_file: str = ""  # the .miz the warehouses are read from
+    ignore_types: list[str] = field(default_factory=list)  # warehouse types never flown
+    spawn_as: dict[str, str] = field(default_factory=dict)  # warehouse type -> Olympus type spawned for it
+    stock: dict[str, dict[str, int]] = field(default_factory=dict)  # filled at load: {airbase: {type: count}}
 
 
 @dataclass
@@ -66,6 +86,9 @@ class Campaign:
     min_replan_gap_minutes: float = 2  # but never more often than this
     protect_radius_km: float = 25  # alert aircraft launch against threats this close to Red ground forces
     max_group_units: int = 12  # vehicles per convoy or battery
+    spawn_ground: bool = True  # False: no ground units are bought or spawned; only command_groups fight on the ground
+    command_groups: list[str] = field(default_factory=list)  # Red ground groups already in the mission that Claude commands
+    defend: list[Zone] = field(default_factory=list)  # places Red must hold while it attacks
 
 
 @dataclass
@@ -80,6 +103,7 @@ class Scenario:
     catalog: CatalogOptions | None = None
     rules: Rules = field(default_factory=Rules)
     campaign: Campaign | None = None
+    warehouses: Warehouses | None = None
 
     @property
     def mode(self) -> str:
@@ -101,18 +125,37 @@ def load_scenario(path: str | Path) -> Scenario:
     catalog_raw = raw.get("catalog")
     if not inventory and catalog_raw is None:
         catalog_raw = {}
-    if not inventory and raw.get("budget_points") is None:
-        raise ValueError("A catalog scenario needs budget_points")
-
     campaign = None
     if raw.get("campaign"):
         c = dict(raw["campaign"])
         staging = c.pop("staging", None) or {}
+        defend = [Zone(name=z.get("name", "zone"), lat=float(z["lat"]), lng=float(z["lng"]), radius_m=float(z.get("radius_m", 3000)))
+                  for z in c.pop("defend", None) or []]
         if not c.get("hq"):
             raise ValueError("campaign.hq must name the Red airbase the campaign is run from")
-        campaign = Campaign(staging_name=staging.get("name", ""), staging_lat=staging.get("lat"), staging_lng=staging.get("lng"), **c)
-        if inventory or raw.get("budget_points") is None:
-            raise ValueError("A campaign scenario buys its forces: give budget_points and no inventory")
+        campaign = Campaign(staging_name=staging.get("name", ""), staging_lat=staging.get("lat"), staging_lng=staging.get("lng"),
+                            defend=defend, **c)
+        if inventory:
+            raise ValueError("A campaign scenario has no inventory: it buys its forces or commands the mission's own")
+        if campaign.spawn_ground and raw.get("budget_points") is None:
+            raise ValueError("A campaign that buys ground forces needs budget_points (or set campaign.spawn_ground: false)")
+        if not campaign.spawn_ground and not campaign.command_groups:
+            raise ValueError("campaign.spawn_ground is false, so list the mission's ground groups Red commands in campaign.command_groups")
+    elif not inventory and raw.get("budget_points") is None:
+        raise ValueError("A catalog scenario needs budget_points")
+
+    warehouses = None
+    if raw.get("warehouses"):
+        w = dict(raw["warehouses"])
+        if not w.get("airbases") or not w.get("mission_file"):
+            raise ValueError("warehouses needs mission_file and airbases (airbase name: airport ID)")
+        miz = Path(w["mission_file"])
+        if not miz.is_absolute():
+            miz = Path(path).parent / miz if (Path(path).parent / miz).exists() else miz
+        if not miz.exists():
+            raise ValueError(f"warehouses.mission_file not found: {miz}")
+        warehouses = Warehouses(**{**w, "mission_file": str(miz), "airbases": {k: int(v) for k, v in w["airbases"].items()}})
+        warehouses.stock = airframe_stock(miz, warehouses.airbases, warehouses.ignore_types, warehouses.spawn_as)
 
     scenario = Scenario(
         name=raw.get("scenario", Path(path).stem),
@@ -132,6 +175,7 @@ def load_scenario(path: str | Path) -> Scenario:
         catalog=CatalogOptions(**catalog_raw) if catalog_raw is not None else None,
         rules=Rules(**(raw.get("rules") or {})),
         campaign=campaign,
+        warehouses=warehouses,
     )
     if scenario.rules.fighter_spawn not in ("ramp", "air"):
         raise ValueError("rules.fighter_spawn must be 'ramp' or 'air'")

@@ -416,7 +416,7 @@ class Commander:
             leader = self._live_leader(units, g)
             if leader is None or g.status == "moving" or now - g.last_fire < rules.fire_mission_every_s:
                 continue
-            reach_m = self.catalog[g.type].engagement_range_m if g.type in self.catalog else 0
+            reach_m = self.catalog.describe(g.type).engagement_range_m
             in_range = [t for t in safe if geo.distance_m(leader.lat, leader.lng, t.lat, t.lng) <= reach_m]
             if not in_range:
                 continue

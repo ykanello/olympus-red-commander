@@ -31,7 +31,8 @@ ARRIVED_M = 500  # a group this close to the end of its route has arrived
 COLUMN_SPACING_M = 35  # between vehicles of a convoy at the staging area
 SLOT_SPACING_M = 250  # between convoys at the staging area
 GROUND_ROLES = ("convoy", "artillery")
-REVIEW_EVENTS = {"group_lost", "arrived", "hold_started", "hold_broken", "target_taken", "campaign_lost"}
+REVIEW_EVENTS = {"group_lost", "arrived", "hold_started", "hold_broken", "target_taken", "campaign_lost", "defence_threatened"}
+MISSION_ORDERS = "mission orders"  # status of a mission group Claude has not given an order yet
 AIR_ROLES = ("sweep", "intercept", "cas")
 
 CAMPAIGN_PROMPT = """You are the Red commander running an offensive in a DCS World mission. You plan and give orders; the DCS AI fights.
@@ -52,6 +53,37 @@ Events in the situation report are about your own Red groups unless they say oth
 Reviews: every replan_minutes, and after big events (a group lost, a group arriving, the hold starting or breaking), you get a situation report and return the same structure. summary is your assessment in two or three sentences. orders change what existing ground groups do: move (with a new route), hold (stop where it is) or return (drive back to the staging area). convoys, artillery and air are reinforcements bought from points_left; leave them empty when none are needed. Return empty lists when nothing should change.
 
 Choose types for the job and the budget, and say why in each reason. Keep every reason to one line."""
+
+COMMAND_PROMPT = """You are the Red commander in a DCS World mission. You give orders to forces that are already in the mission; the DCS AI fights.
+
+Goals, in this order:
+1. Hold what Red has, above all the defend_zones. Do not strip a defend zone of its defenders for the attack while it is threatened.
+2. Take the target zone. Red takes it when Red ground units hold the zone for hold_minutes with no enemy ground units inside. Aircraft cannot take it; only ground forces can.
+
+Your forces:
+- Ground: only the groups in red_ground_groups, which are already in the mission. No ground units can be bought or spawned, so a group lost is gone for good. A group keeps doing what the mission gave it (status "mission orders": its own route, or standing where it is) until you order it. Orders: move (with a route; it drives the route, keeping to roads where it can, and stops at the last point), hold (stop where it is) or return (drive back to where it started).
+- Artillery groups fire on detected enemy ground units within range, never on a target close to Red ground units. Move them so their range covers where your ground forces will fight.
+- Everything else Red has (air defence, radars, missile launchers, ships) is run by the mission. You do not command it.
+- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. Keep airframes back for later; the enemy will come more than once.
+- Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
+
+Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.
+
+Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone.
+
+You are asked for the opening orders, then for a review every replan_minutes and after big events (a group lost or arriving, a defend zone threatened, the hold starting or breaking). Each time return the same structure: summary is your assessment in two or three sentences, orders are for your ground groups, air adds air taskings from the airframes left. Return empty lists when nothing should change. Keep every reason to one line."""
+
+
+def campaign_prompt(scenario: Scenario) -> str:
+    camp = scenario.campaign
+    if not camp.spawn_ground:
+        return COMMAND_PROMPT
+    prompt = CAMPAIGN_PROMPT
+    if camp.command_groups:
+        prompt += "\n\nYou also command ground groups that were already in the mission; they are in red_ground_groups from the start. Give them orders like any other group; return sends them back to where they started."
+    if scenario.warehouses:
+        prompt += "\n\nAircraft cost no points but come only from the airframes each airbase's warehouse holds. Each air tasking names its airbase and spends that many airframes from it for good."
+    return prompt
 
 
 # ---------- plan ----------
@@ -107,8 +139,7 @@ class CampaignPlan:
             summary=clean_text(data.get("summary", "")),
             convoys=[Convoy(**{**cleaned(c), "elements": [Element(**e) for e in c.get("elements", [])]}) for c in data.get("convoys", [])],
             artillery=[Battery(**cleaned(b)) for b in data.get("artillery", [])],
-            air=[FighterTasking(**{"sweep_route": [], **{k: v for k, v in cleaned(a).items() if k != "airbase"}, "airbase": hq})
-                 for a in data.get("air", [])],
+            air=[FighterTasking(**{"sweep_route": [], **cleaned(a), "airbase": a.get("airbase") or hq}) for a in data.get("air", [])],
             orders=[Order(**{"route": [], "reason": "", **cleaned(o)}) for o in data.get("orders", [])],
         )
 
@@ -131,9 +162,12 @@ def convoy_types(catalog: Catalog) -> list[str]:
     return [n for n in catalog.names("groundunit") if not catalog[n].is_template and catalog[n].cls not in ARTILLERY_CLASSES]
 
 
-def campaign_schema(catalog: Catalog, review: bool = False) -> dict:
+def campaign_schema(catalog: Catalog, review: bool = False, ground: bool = True, orders: bool = False,
+                    airbases: list[str] | None = None) -> dict:
     """Structured-output schema for the opening plan, or for a review.
 
+    ground: offer convoys and artillery to buy. orders: let the opening give orders (to the mission's own groups).
+    airbases: each air tasking names one of these (warehouse mode); without, all aircraft fly from the HQ.
     The review schema is the same all mission (group names are checked by validate_campaign, not listed here),
     so it does not change the request from one review to the next and the cached brief stays valid.
     """
@@ -178,20 +212,20 @@ def campaign_schema(catalog: Catalog, review: bool = False) -> dict:
             "type": {"type": "string", "enum": catalog.names("aircraft") or [""]},
             "count": {"type": "integer"},
             "role": {"type": "string", "enum": list(AIR_ROLES)},
+            **({"airbase": {"type": "string", "enum": airbases}} if airbases else {}),
             "loadout": {"type": "string"},
             "sweep_route": {"type": "array", "items": point, "description": "Waypoints for a sweep; empty otherwise"},
             "reason": {"type": "string"},
         },
-        "required": ["type", "count", "role", "loadout", "sweep_route", "reason"],
+        "required": ["type", "count", "role", *(["airbase"] if airbases else []), "loadout", "sweep_route", "reason"],
         "additionalProperties": False,
     }
     properties = {
         "summary": {"type": "string", "description": "Two or three sentences: the concept, or at a review your assessment"},
-        "convoys": {"type": "array", "items": convoy},
-        "artillery": {"type": "array", "items": battery},
+        **({"convoys": {"type": "array", "items": convoy}, "artillery": {"type": "array", "items": battery}} if ground else {}),
         "air": {"type": "array", "items": air},
     }
-    if review:
+    if review or orders:
         properties["orders"] = {"type": "array", "items": {
             "type": "object",
             "properties": {
@@ -206,13 +240,22 @@ def campaign_schema(catalog: Catalog, review: bool = False) -> dict:
     return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
 
-def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, points: float,
-                      existing: list[str] | None = None) -> tuple[list[str], list[str]]:
-    """Returns (errors, warnings). existing: labels of groups already in the field (reviews only)."""
+def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, points: float | None,
+                      existing: list[str] | None = None, airframes: dict[str, dict[str, int]] | None = None,
+                      opening: bool | None = None) -> tuple[list[str], list[str]]:
+    """Returns (errors, warnings).
+
+    points: None when there is no budget. existing: labels of ground groups already in the field (at reviews, or the
+    mission's own groups at the opening). airframes: {airbase: {type: count}} left in the warehouses, if they set the limit.
+    """
     errors: list[str] = []
     warnings: list[str] = []
     camp = scenario.campaign
     existing = existing or []
+    opening = not existing if opening is None else opening
+
+    if not camp.spawn_ground and (plan.convoys or plan.artillery):
+        errors.append("No ground units can be bought or spawned in this mission: give orders to your red_ground_groups instead")
 
     def check_points(what: str, pts: list[dict]) -> None:
         for p in pts:
@@ -270,6 +313,18 @@ def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, 
                 errors.append(f"{a.type} sweep: needs at least one waypoint")
             check_points(f"{a.type} sweep", a.sweep_route)
 
+    if airframes is not None:
+        wanted: Counter = Counter()
+        for a in plan.air:
+            if a.airbase not in airframes:
+                errors.append(f"{a.type}: '{a.airbase}' is not one of the airbases {sorted(airframes)}")
+            else:
+                wanted[(a.airbase, a.type)] += a.count
+        for (base, t), n in sorted(wanted.items()):
+            left = airframes[base].get(t, 0)
+            if n > left:
+                errors.append(f"{base} has {left} {t} left, the plan flies {n} from there")
+
     for o in plan.orders:
         if o.group not in existing:
             errors.append(f"Order for '{o.group}': no such group in the field")
@@ -281,10 +336,10 @@ def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, 
             check_points(f"Order for '{o.group}'", o.route)
 
     cost = plan.cost(catalog)
-    if cost > points:
+    if points is not None and cost > points:
         errors.append(f"This costs {cost} points, only {points:g} are available")
 
-    if not existing:
+    if opening and camp.spawn_ground:
         r_km = scenario.objective.radius_m / 1000
         if not any(c.route and c.route[-1]["distance_km"] <= r_km for c in plan.convoys):
             warnings.append("No convoy's route ends inside the target zone")
@@ -295,47 +350,76 @@ def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, 
 
 class CampaignPlanner(Planner):
     def brief(self, scenario: Scenario, catalog: Catalog, red_airbases: dict, staging: tuple[float, float]) -> dict:
-        o, camp = scenario.objective, scenario.campaign
+        """The part of the request that stays the same all mission."""
+        o, camp, w = scenario.objective, scenario.campaign, scenario.warehouses
         where = lambda lat, lng: {"bearing_deg": round(geo.bearing_deg(o.lat, o.lng, lat, lng)),
                                   "distance_km": round(geo.distance_m(o.lat, o.lng, lat, lng) / 1000, 1)}
-        return {
+        brief = {
             "target": {"name": o.name, "radius_m": o.radius_m, "threat_axis_deg": o.threat_axis_deg,
                        "note": "All positions are bearing/distance from this target's centre."},
             "hq_airbase": {"name": camp.hq, **where(*red_airbases[camp.hq])},
-            "staging_area": {"name": camp.staging_name or camp.hq, **where(*staging)},
-            "other_red_airbases": [{"name": n, **where(*ll)} for n, ll in sorted(red_airbases.items()) if n != camp.hq],
-            "rules": {
-                "hold_minutes": camp.hold_minutes, "replan_minutes": camp.replan_minutes,
-                "max_group_units": camp.max_group_units, "protect_radius_km": camp.protect_radius_km,
-                "artillery_fire": scenario.rules.artillery_fire, "no_fire_near_friendly_m": scenario.rules.no_fire_near_friendly_m,
-                "scramble_pair_size": scenario.rules.scramble_pair_size, "sweep_altitude_ft": scenario.rules.sweep_altitude_ft,
-            },
-            "budget_points": scenario.budget_points,
-            "menu": [c for c in catalog.cards() if catalog[c["type"]].category == "aircraft" or c["type"] in convoy_types(catalog)
-                     or catalog[c["type"]].cls in ARTILLERY_CLASSES],
         }
+        if camp.spawn_ground:
+            brief["staging_area"] = {"name": camp.staging_name or camp.hq, **where(*staging)}
+        if w:
+            brief["airbases"] = [{"name": n, **where(*red_airbases[n]), "airframes": w.stock[n]} for n in sorted(w.stock)]
+        else:
+            brief["other_red_airbases"] = [{"name": n, **where(*ll)} for n, ll in sorted(red_airbases.items()) if n != camp.hq]
+        if camp.defend:
+            brief["defend_zones"] = [{"name": z.name, "radius_m": z.radius_m, **where(z.lat, z.lng)} for z in camp.defend]
+        brief["rules"] = {
+            "hold_minutes": camp.hold_minutes, "replan_minutes": camp.replan_minutes,
+            "max_group_units": camp.max_group_units, "protect_radius_km": camp.protect_radius_km,
+            "scramble_when_contact_within_km": scenario.rules.scramble_when_contact_within_km,
+            "artillery_fire": scenario.rules.artillery_fire, "no_fire_near_friendly_m": scenario.rules.no_fire_near_friendly_m,
+            "scramble_pair_size": scenario.rules.scramble_pair_size, "sweep_altitude_ft": scenario.rules.sweep_altitude_ft,
+        }
+        if camp.spawn_ground:
+            brief["budget_points"] = scenario.budget_points
+        brief["menu"] = [c for c in catalog.cards() if catalog[c["type"]].category == "aircraft" or camp.spawn_ground and (
+            c["type"] in convoy_types(catalog) or catalog[c["type"]].cls in ARTILLERY_CLASSES)]
+        return brief
+
+    def _schema(self, scenario: Scenario, catalog: Catalog, review: bool) -> dict:
+        camp, w = scenario.campaign, scenario.warehouses
+        return campaign_schema(catalog, review=review, ground=camp.spawn_ground, orders=bool(camp.command_groups),
+                               airbases=sorted(w.stock) if w else None)
 
     def plan_campaign(self, scenario: Scenario, catalog: Catalog, red_airbases: dict,
-                      staging: tuple[float, float]) -> tuple[CampaignPlan, list[str]]:
+                      staging: tuple[float, float], situation: dict | None = None) -> tuple[CampaignPlan, list[str]]:
+        """situation: what Red has at the start, when it commands groups already in the mission."""
         brief = self.brief(scenario, catalog, red_airbases, staging)
-        extra = {"instruction": "Buy your opening force from the menu within budget_points (price per vehicle or airframe) and plan the opening of the offensive."}
+        camp, w = scenario.campaign, scenario.warehouses
+        if camp.spawn_ground:
+            extra = {"instruction": "Buy your opening force from the menu within budget_points (price per vehicle or airframe) and plan the opening of the offensive."}
+        else:
+            extra = {"instruction": "Plan the opening: orders for your ground groups and air taskings from the airframes the airbases hold."}
+        if situation is not None:
+            extra = {"situation": situation, **extra}
+        labels = [g["name"] for g in (situation or {}).get("red_ground_groups", [])]
+        airframes = (situation or {}).get("airframes_left", w.stock if w else None)
 
         def check(data):
-            plan = CampaignPlan.from_json(data, scenario.campaign.hq)
-            return (plan, *validate_campaign(plan, scenario, catalog, scenario.budget_points))
-        return self.solve(brief, campaign_schema(catalog), check, CAMPAIGN_PROMPT, extra=extra, what="opening plan")
+            plan = CampaignPlan.from_json(data, camp.hq)
+            return (plan, *validate_campaign(plan, scenario, catalog, scenario.budget_points if camp.spawn_ground else None,
+                                             labels, airframes, opening=True))
+        return self.solve(brief, self._schema(scenario, catalog, review=False), check, campaign_prompt(scenario), extra=extra,
+                          what="opening plan")
 
     def review(self, scenario: Scenario, catalog: Catalog, red_airbases: dict, staging: tuple[float, float],
                report: dict) -> CampaignPlan:
         brief = self.brief(scenario, catalog, red_airbases, staging)
-        extra = {"situation": report,
-                 "instruction": "Review the situation and give your orders. Reinforcements must fit within situation.points_left."}
+        what = "Reinforcements must fit within situation.points_left." if scenario.campaign.spawn_ground else \
+            "Air taskings must fit within situation.airframes_left."
+        extra = {"situation": report, "instruction": f"Review the situation and give your orders. {what}"}
         labels = [g["name"] for g in report["red_ground_groups"]]
 
         def check(data):
             plan = CampaignPlan.from_json(data, scenario.campaign.hq)
-            return (plan, *validate_campaign(plan, scenario, catalog, report["points_left"], labels))
-        plan, _ = self.solve(brief, campaign_schema(catalog, review=True), check, CAMPAIGN_PROMPT, extra=extra, what="review")
+            return (plan, *validate_campaign(plan, scenario, catalog, report.get("points_left"), labels,
+                                             report.get("airframes_left"), opening=False))
+        plan, _ = self.solve(brief, self._schema(scenario, catalog, review=True), check, campaign_prompt(scenario), extra=extra,
+                             what="review")
         return plan
 
 
@@ -354,6 +438,9 @@ class CampaignCommander(Commander):
     assessments: list = field(default_factory=list)
     recent_events: list = field(default_factory=list)
     spawn_slot: int = 0
+    airframes_left: dict = field(default_factory=dict)  # {airbase: {type: count}}, when the warehouses set the limit
+    awaiting: list = field(default_factory=list)  # mission groups to command that are not (yet) in the mission
+    threatened: list = field(default_factory=list)  # defend zones with detected enemy ground units inside
     _review: concurrent.futures.Future | None = None
     _executor: concurrent.futures.ThreadPoolExecutor | None = None
 
@@ -377,7 +464,8 @@ class CampaignCommander(Commander):
         return {**super().state(), "campaign": {
             "points_left": self.points_left, "started_at": self.started_at, "hold_since": self.hold_since,
             "outcome": self.outcome, "last_review": self.last_review, "assessments": self.assessments,
-            "spawn_slot": self.spawn_slot}}
+            "spawn_slot": self.spawn_slot, "airframes_left": self.airframes_left, "awaiting": self.awaiting,
+            "threatened": self.threatened}}
 
     def restore(self, state: dict) -> None:
         super().restore(state)
@@ -387,14 +475,52 @@ class CampaignCommander(Commander):
     def _labels(self) -> dict[str, SpawnedGroup]:
         return {g.label: g for g in self.groups.values() if g.role in GROUND_ROLES}
 
+    # ----- the mission's own groups -----
+    def take_command(self, units: dict[int, Unit]) -> None:
+        """Start the mission: the warehouse stock and the mission's ground groups Red commands."""
+        self.started_at = self.last_review = time.time()
+        if self.scenario.warehouses:
+            self.airframes_left = {base: dict(types) for base, types in self.scenario.warehouses.stock.items()}
+        self.awaiting = list(self.camp.command_groups)
+        self._adopt(units)
+        if self.awaiting:
+            log.warning("Not in the mission (yet): %s. They are taken under command if they appear, e.g. after a late activation.",
+                        ", ".join(self.awaiting))
+
+    def opening_report(self, units: dict[int, Unit]) -> dict:
+        """What Red has at the start, for the opening plan."""
+        self.take_command(units)
+        return self.situation(units, ["opening"])
+
+    def _adopt(self, units: dict[int, Unit]) -> None:
+        for name in list(self.awaiting):
+            members = [u for u in units.values() if u.group_name == name and u.alive and u.coalition == self.scenario.coalition
+                       and u.category in GROUND_CATEGORIES]
+            if not members:
+                continue
+            leader = self._leader(units, name)
+            types = Counter(u.name for u in members)
+            kinds = {t: self.catalog.describe(t) for t in types}
+            guns = [t for t, k in kinds.items() if k.cls in ARTILLERY_CLASSES]
+            main = guns[0] if guns else types.most_common(1)[0][0]
+            g = SpawnedGroup(name, main, kinds[main].cls, leader.lat, leader.lng, role="artillery" if guns else "convoy",
+                             label=name, status=MISSION_ORDERS)
+            self.groups[name] = g
+            self.awaiting.remove(name)
+            self._event("command_taken", group=name, role=g.role, types=dict(types))
+
     # ----- spawning -----
     def execute(self, plan: CampaignPlan) -> None:
-        self.started_at = self.last_review = time.time()
-        self.points_left = self.scenario.budget_points - plan.cost(self.catalog)
+        units = self.client.get_units()
+        self.take_command(units)
+        self.points_left = (self.scenario.budget_points or 0) - plan.cost(self.catalog)
         o = self.scenario.objective
         self._event("plan", summary=plan.summary, cost=plan.cost(self.catalog), points_left=self.points_left)
         self._marker(o.lat, o.lng, f"Red target: {o.name}. {plan.summary}")
-        self._marker(*self.staging, f"Red staging area: {self.camp.staging_name or self.camp.hq}")
+        if self.camp.spawn_ground:
+            self._marker(*self.staging, f"Red staging area: {self.camp.staging_name or self.camp.hq}")
+        for z in self.camp.defend:
+            self._marker(z.lat, z.lng, f"Red holds: {z.name}")
         self._carry_out(plan)
         self.review_reasons.clear()
 
@@ -406,6 +532,9 @@ class CampaignCommander(Commander):
             self._spawn_column(b.name, [b.type] * b.count, "artillery", b.depart_min,
                                [to_latlng(self.scenario, b.firing_position)], b.reason)
         for a in plan.air:
+            if self.airframes_left:
+                base = self.airframes_left.setdefault(a.airbase, {})
+                base[a.type] = base.get(a.type, 0) - a.count
             if a.role == "sweep":
                 self._launch_sweep(a)
             else:
@@ -457,8 +586,8 @@ class CampaignCommander(Commander):
             return
         if order.action == "move":
             self._set_off(g, leader, [to_latlng(self.scenario, p) for p in order.route])
-        elif order.action == "return":
-            self._set_off(g, leader, [self.staging])
+        elif order.action == "return":  # where it started: its own spot at the staging area, or its mission position
+            self._set_off(g, leader, [(g.lat, g.lng)])
         else:  # hold: a path to where it stands stops it
             self.client.set_path(leader.id, [(leader.lat, leader.lng)])
             g.status = "holding"
@@ -471,14 +600,21 @@ class CampaignCommander(Commander):
     def _in_response_zone(self, threat: Unit, units: dict[int, Unit]) -> bool:
         if super()._in_response_zone(threat, units):
             return True
+        scramble = self.scenario.rules.scramble_when_contact_within_km * 1000
+        if any(geo.distance_m(z.lat, z.lng, threat.lat, threat.lng) <= scramble for z in self.camp.defend):
+            return True
         reach = self.camp.protect_radius_km * 1000
         return any(geo.distance_m(l.lat, l.lng, threat.lat, threat.lng) <= reach for l in self._ground_leaders(units))
 
     def tick(self, units: dict[int, Unit] | None = None) -> None:
         units = self.client.get_units() if units is None else units
+        if self.awaiting:
+            self._adopt(units)
         self._move_groups(units)
         super().tick(units)
-        self._air_response(units, "cas", self.detected_enemy_ground(units))
+        enemy_ground = self.detected_enemy_ground(units)
+        self._air_response(units, "cas", enemy_ground)
+        self._watch_defence(enemy_ground)
         self._referee(units)
         self._maybe_review(units)
 
@@ -496,6 +632,17 @@ class CampaignCommander(Commander):
                 o = self.scenario.objective
                 self._event("arrived", group=g.name, name=g.label,
                             km_from_target=round(geo.distance_m(o.lat, o.lng, leader.lat, leader.lng) / 1000, 1))
+
+    def _watch_defence(self, enemy_ground: dict[int, Unit]) -> None:
+        """A detected enemy ground unit inside a defend zone calls for a review."""
+        for z in self.camp.defend:
+            inside = [t for t in enemy_ground.values() if geo.distance_m(z.lat, z.lng, t.lat, t.lng) <= z.radius_m]
+            if inside and z.name not in self.threatened:
+                self.threatened.append(z.name)
+                self._event("defence_threatened", zone=z.name, enemy_units=len(inside), types=dict(Counter(t.name for t in inside)))
+            elif not inside and z.name in self.threatened:
+                self.threatened.remove(z.name)
+                self._event("defence_clear", zone=z.name)
 
     def _referee(self, units: dict[int, Unit]) -> None:
         """Decides the outcome from the whole picture, not just what Red detects."""
@@ -519,7 +666,8 @@ class CampaignCommander(Commander):
             self._event("hold_broken", red_units=len(red_in), enemy_units=len(blue_in))
 
         cheapest = min((i.price for i in self.catalog.items.values() if i.category == "groundunit"), default=0)
-        if not self.outcome and not ours and self.points_left < cheapest:
+        can_buy = self.camp.spawn_ground and self.points_left >= cheapest
+        if not self.outcome and not ours and not self.awaiting and not can_buy:
             self.outcome = "lost"
             self._event("campaign_lost", points_left=self.points_left)
             log.info("The campaign is lost. Claude reviews stop here.")
@@ -560,10 +708,19 @@ class CampaignCommander(Commander):
 
     def _apply_review(self, plan: CampaignPlan) -> None:
         cost = plan.cost(self.catalog)
-        if cost > self.points_left:
+        if self.camp.spawn_ground and cost > self.points_left:
             log.warning("Review buys %d points with %g left; ignoring its reinforcements", cost, self.points_left)
             plan.convoys, plan.artillery, plan.air = [], [], []
             cost = 0
+        if not self.camp.spawn_ground and (plan.convoys or plan.artillery):
+            log.warning("Review buys ground units, which this mission does not allow; ignoring them")
+            plan.convoys, plan.artillery = [], []
+        flown = Counter()
+        for a in plan.air:
+            flown[(a.airbase, a.type)] += a.count
+        if self.airframes_left and any(n > self.airframes_left.get(b, {}).get(t, 0) for (b, t), n in flown.items()):
+            log.warning("Review flies more airframes than the warehouses have left; ignoring its air taskings")
+            plan.air = []
         self.points_left -= cost
         self.assessments = (self.assessments + [plan.summary])[-3:]
         self._event("review", assessment=plan.summary, orders=len(plan.orders), reinforcements=plan.names() + [a.type for a in plan.air],
@@ -593,18 +750,30 @@ class CampaignCommander(Commander):
             near = min(((n, geo.distance_m(l.lat, l.lng, t.lat, t.lng)) for n, l in leaders.items() if l), key=lambda x: x[1], default=None)
             enemies.append({"id": t.id, "type": t.name, "category": t.category, "group": t.group_name, "position": where(t),
                             **({"nearest_red_group": near[0], "km_from_it": round(near[1] / 1000, 1)} if near else {})})
-        return {
+        report = {
             "why_now": reasons or ["scheduled"],
             "elapsed_min": round((time.time() - self.started_at) / 60, 1),
             "outcome": self.outcome or "in progress",
-            "points_left": self.points_left,
+            **({"points_left": self.points_left} if self.camp.spawn_ground else {}),
             "hold": {"running": self.hold_since is not None,
                      "held_min": round((time.time() - self.hold_since) / 60, 1) if self.hold_since else 0,
                      "needed_min": self.camp.hold_minutes},
             "red_ground_groups": ground,
             "red_aircraft": air,
-            "on_alert_at_hq": [{"type": a.type, "role": a.role, "remaining": a.remaining} for a in self.alerts if a.remaining],
+            "on_alert": [{"type": a.type, "role": a.role, "airbase": a.airbase, "remaining": a.remaining}
+                         for a in self.alerts if a.remaining],
             "detected_enemy": enemies,
             "events_since_last_review": self.recent_events,
             "your_previous_assessments": self.assessments,
         }
+        if self.camp.defend:
+            red_ground = [u for g in self.groups.values() if g.role in GROUND_ROLES
+                          for u in units.values() if u.group_name == g.name and u.alive]
+            count_in = lambda us, z: sum(geo.distance_m(z.lat, z.lng, u.lat, u.lng) <= z.radius_m for u in us)
+            report["defend_zones"] = [{"name": z.name, "enemy_detected_inside": z.name in self.threatened,
+                                       "your_ground_units_inside": count_in(red_ground, z)} for z in self.camp.defend]
+        if self.scenario.warehouses:
+            report["airframes_left"] = {b: {t: n for t, n in types.items() if n > 0} for b, types in self.airframes_left.items()}
+        if self.awaiting:
+            report["groups_not_in_mission_yet"] = self.awaiting
+        return report

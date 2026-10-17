@@ -98,8 +98,18 @@ def _ground_class(entry: dict) -> str | None:
 
 
 class Catalog:
-    def __init__(self, items: dict[str, CatalogItem]):
+    def __init__(self, items: dict[str, CatalogItem], ground_db: dict | None = None):
         self.items = items
+        self.ground_db = ground_db or {}  # the whole Olympus ground database, for units Red already has in the mission
+
+    def describe(self, name: str) -> CatalogItem:
+        """Any ground type, even one Red may not buy: class and ranges of a unit already in the mission."""
+        if name in self.items:
+            return self.items[name]
+        entry = self.ground_db.get(name, {})
+        return CatalogItem(name=name, label=entry.get("label", name), cls=_ground_class(entry) or "other", category="groundunit",
+                           era=entry.get("era", ""), price=0, engagement_range_m=float(entry.get("engagementRange") or 0),
+                           acquisition_range_m=float(entry.get("acquisitionRange") or 0))
 
     def __contains__(self, name: str) -> bool:
         return name in self.items
@@ -193,4 +203,4 @@ class Catalog:
                 description=entry.get("description", ""),
             )
 
-        return cls(items)
+        return cls(items, ground)

@@ -85,6 +85,8 @@ Missiles: missile_batteries are ballistic missile launchers already in the missi
 def campaign_prompt(scenario: Scenario) -> str:
     camp = scenario.campaign
     notes = MISSILE_NOTES if scenario.missiles else ""
+    if camp.notes:
+        notes += "\n\ncommander_notes in the brief are your commander's intelligence and intent for this mission: plan by them."
     if not camp.spawn_ground:
         return COMMAND_PROMPT + notes
     prompt = CAMPAIGN_PROMPT + notes
@@ -442,12 +444,15 @@ class CampaignPlanner(Planner):
             brief["airbases"] = [{"name": n, **where(*red_airbases[n]), "airframes": w.stock[n]} for n in sorted(w.stock)]
         else:
             brief["other_red_airbases"] = [{"name": n, **where(*ll)} for n, ll in sorted(red_airbases.items()) if n != camp.hq]
+        if camp.notes:
+            brief["commander_notes"] = camp.notes
         if camp.defend:
             brief["defend_zones"] = [{"name": z.name, "radius_m": z.radius_m, **where(z.lat, z.lng)} for z in camp.defend]
         if scenario.missiles:
             brief["missile_intent"] = scenario.missiles.intent
             brief["strike_targets"] = [{"name": t.name, **where(t.lat, t.lng)} for t in scenario.missiles.targets]
         brief["rules"] = {
+            **({"alert_pairs_go_first_after": scenario.rules.priority_air_targets} if scenario.rules.priority_air_targets else {}),
             "hold_minutes": camp.hold_minutes, "replan_minutes": camp.replan_minutes,
             "max_group_units": camp.max_group_units, "protect_radius_km": camp.protect_radius_km,
             "scramble_when_contact_within_km": scenario.rules.scramble_when_contact_within_km,

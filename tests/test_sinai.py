@@ -150,7 +150,7 @@ def test_warehouses_give_the_airframes_per_airbase(miz):
 def test_sinai_scenario_and_menu(scenario, catalog):
     camp = scenario.campaign
     assert not camp.spawn_ground and camp.hq == "Abu Rudeis" and scenario.budget_points is None
-    assert [z.name for z in camp.defend] == ["Abu Rudeis airport", "Abu Rudeis seaport"]
+    assert [z.name for z in camp.defend] == ["Abu Rudeis airport", "Abu Rudeis seaport", "Missile base (El Tor)"]
     assert scenario.warehouses.stock == {"Abu Rudeis": {"Su-25T": 2, "MiG-29S": 3}, "Wadi Abu Rish": {"MiG-29S": 4}}
     # Only what the warehouses hold, at no cost; the stock is the limit.
     assert catalog.names("aircraft") == ["MiG-29S", "Su-25T"] and catalog["MiG-29S"].price == 0
@@ -195,9 +195,11 @@ def test_opening_brief_shows_forces_airframes_and_defend_zones(scenario, catalog
     brief = json.loads(static["text"])
     assert "staging_area" not in brief and "budget_points" not in brief
     assert {b["name"]: b["airframes"] for b in brief["airbases"]} == scenario.warehouses.stock
-    assert [z["name"] for z in brief["defend_zones"]] == ["Abu Rudeis airport", "Abu Rudeis seaport"]
+    assert [z["name"] for z in brief["defend_zones"]] == ["Abu Rudeis airport", "Abu Rudeis seaport", "Missile base (El Tor)"]
     assert {c["type"] for c in brief["menu"]} == {"MiG-29S", "Su-25T"}  # no ground units to buy
     assert "Missiles:" in call["system"] and "Ovda" in brief["missile_intent"]
+    assert "C-130" in brief["commander_notes"] and "commander_notes" in call["system"]
+    assert brief["rules"]["alert_pairs_go_first_after"] == ["C-130J-30", "C-130"]
     assert "Ovda storage 1" in [t["name"] for t in brief["strike_targets"]]
     assert call["output_config"]["format"]["schema"]["properties"]["strikes"]["items"]["properties"]["group"]["enum"] == [
         "Iskander-first", "Iskander-second", "Iskander-5", "Scud"]
@@ -369,3 +371,19 @@ def test_missiles_wait_for_the_mission_strike_then_take_claudes_orders(scenario,
     events = [json.loads(l) for l in (tmp_path / "e.jsonl").read_text().splitlines()]
     assert events[-1]["event"] == "strike_refused" and "Red ground units within 2000 m" in events[-1]["why"]
     assert {"missile_launch", "missiles_ready", "missile_strike"} <= {e["event"] for e in events}
+
+
+def test_alert_pairs_go_after_the_transport_first(scenario, catalog, olympus):
+    fake, client = olympus
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.execute(CampaignPlan.from_json({"summary": "Cover Abu Rudeis.", "orders": [], "air": [
+        {"type": "MiG-29S", "count": 2, "role": "intercept", "airbase": "Abu Rudeis", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": "One pair"}]}, "Abu Rudeis"))
+    near = geo.project(*ABU_RUDEIS, 90, 10000)
+    far = geo.project(*ABU_RUDEIS, 90, 40000)
+    fighter = fake.add(category="Aircraft", coalition=2, name="F-16C_50", group_name="Viper-1", lat=near[0], lng=near[1], alt=6000)
+    transport = fake.add(category="Aircraft", coalition=2, name="C-130J-30", group_name="Trash", lat=far[0], lng=far[1], alt=3000)
+    next(u for u in fake.units.values() if u.group_name == "Infantry-1").contacts = [fighter.id, transport.id]
+    fake.commands.clear()
+    cmd.tick()
+    assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"] == [transport.id]

@@ -331,6 +331,9 @@ class Commander:
         o = self.scenario.objective
         return geo.distance_m(o.lat, o.lng, threat.lat, threat.lng) <= self.scenario.rules.scramble_when_contact_within_km * 1000
 
+    def _priority(self, threat: Unit) -> bool:
+        return threat.name in self.scenario.rules.priority_air_targets
+
     def _air_response(self, units: dict[int, Unit], role: str, threats: dict[int, Unit]) -> None:
         """Alert aircraft of one role: drop dead groups, retarget those whose target is gone, scramble against the rest."""
         assigned: set[int] = set()
@@ -343,14 +346,14 @@ class Commander:
                 continue
             free = [t for t in threats.values() if t.id not in assigned]
             if free:
-                target = min(free, key=lambda t: geo.distance_m(leader.lat, leader.lng, t.lat, t.lng))
+                target = min(free, key=lambda t: (not self._priority(t), geo.distance_m(leader.lat, leader.lng, t.lat, t.lng)))
                 self.client.attack_unit(leader.id, target.id)
                 g.target_id = target.id
                 assigned.add(target.id)
                 self._event("retask", group=g.name, target=target.id)
 
         o = self.scenario.objective
-        for t in sorted(threats.values(), key=lambda t: geo.distance_m(o.lat, o.lng, t.lat, t.lng)):
+        for t in sorted(threats.values(), key=lambda t: (not self._priority(t), geo.distance_m(o.lat, o.lng, t.lat, t.lng))):
             if t.id in assigned or not self._in_response_zone(t, units):
                 continue
             slot = self._pick_alert(t, role)

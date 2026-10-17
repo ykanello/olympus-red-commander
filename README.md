@@ -138,6 +138,10 @@ Before the first run, set `warehouses.mission_file` to the .miz you run (on the 
   aircraft that land are not counted back. Aircraft then cost no points. `ignore_types` leaves warehouse types out, and
   `spawn_as` spawns an Olympus type for a warehouse type Olympus does not have (the warehouse's count still applies). The
   bridge warns at start about warehouse types it cannot fly.
+- **`campaign.notes`** is the commander's intelligence and intent in plain words (in the Sinai mission: how Blue has to
+  win, and what Red must stop). Claude gets it in its brief and plans by it.
+- **`rules.priority_air_targets`** lists enemy aircraft types that alert pairs go after before anything else (the
+  C-130 in the Sinai mission), in every mode.
 - Red loses when every commanded ground group is gone. It wins by holding the target as in the offensive campaign.
 - **`missiles`** hands the mission's ballistic missile groups to Claude. With `wait_for_mission_strike`, the mission fires
   first (in the Sinai mission, its triggers fire on Ovda); a group becomes Claude's once it has not launched for

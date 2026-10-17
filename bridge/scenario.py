@@ -80,6 +80,7 @@ class Rules:
     air_spawn_altitude_ft: float = 10000
     sweep_altitude_ft: float = 25000
     poll_seconds: float = 5
+    priority_air_targets: list[str] = field(default_factory=list)  # enemy aircraft types alert pairs go after first
     # Ground war: enemy ground units count only once a Red unit detects them (EWRs do not see vehicles).
     reserve_react_within_km: float = 30  # a detected enemy ground group this close to the objective draws a reserve
     artillery_fire: bool = True  # artillery fires on detected enemy ground units within its range
@@ -102,6 +103,7 @@ class Campaign:
     spawn_ground: bool = True  # False: no ground units are bought or spawned; only command_groups fight on the ground
     command_groups: list[str] = field(default_factory=list)  # Red ground groups already in the mission that Claude commands
     defend: list[Zone] = field(default_factory=list)  # places Red must hold while it attacks
+    notes: str = ""  # the commander's intelligence and intent, in plain words, for Claude
 
 
 @dataclass

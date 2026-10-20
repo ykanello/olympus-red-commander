@@ -87,6 +87,8 @@ class Commander:
     state_path: Path | None = None  # saved after every change so a restarted bridge can take over its units
     work_dir: Path = Path("logs")  # where generated Lua files go (must be on the DCS machine)
     check_terrain: bool = True
+    spawn_timeout_s: float = 20.0  # how long a spawn's units get to show up in Olympus before it counts as refused
+    spawn_failures: set = field(default_factory=set)  # (airbase, type, loadout) DCS refused to spawn
 
     # ---------- helpers ----------
     def _event(self, kind: str, **data) -> None:
@@ -103,6 +105,7 @@ class Commander:
             "marker_counter": self.marker_counter,
             "groups": [dataclasses.asdict(g) for g in self.groups.values()],
             "alerts": [dataclasses.asdict(a) for a in self.alerts],
+            "spawn_failures": sorted(self.spawn_failures),
         }
 
     def save_state(self) -> None:
@@ -119,6 +122,7 @@ class Commander:
         self.marker_counter = state["marker_counter"]
         self.groups = {g["name"]: SpawnedGroup(**g) for g in state["groups"]}
         self.alerts = [AlertSlot(**a) for a in state["alerts"]]
+        self.spawn_failures = {tuple(f) for f in state.get("spawn_failures", [])}
 
     # ---------- terrain ----------
     def _footprint_m(self, g) -> float:
@@ -155,7 +159,10 @@ class Commander:
         leaders = [u for u in members if u.is_leader]
         return (leaders or members)[0]
 
-    def _wait_for_group(self, group_name: str, timeout: float = 20.0) -> Unit | None:
+    def _wait_for_group(self, group_name: str | None, timeout: float | None = None) -> Unit | None:
+        if group_name is None:
+            return None
+        timeout = self.spawn_timeout_s if timeout is None else timeout
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             leader = self._leader(self.client.get_units(), group_name)
@@ -166,13 +173,14 @@ class Commander:
         return None
 
     def _spawn_and_find(self, requested_name: str, lat: float, lng: float, send, radius_m: float = 5000.0,
-                        timeout: float = 20.0) -> str:
-        """Send a spawn and return the DCS group name it produced.
+                        timeout: float | None = None) -> str | None:
+        """Send a spawn and return the DCS group name it produced, or None when no units appeared (DCS refused the spawn).
 
         Newer Olympus versions honour groupName; older ones (e.g. v2.0.x builds) ignore it and name the group
         "Olympus-<n>". So the new group is found by name, or else as the new units of our coalition near the spawn point.
         """
         # spawn_points=0 at the call sites: the bridge enforces its own budget, so Olympus's spawn restriction is not charged.
+        timeout = self.spawn_timeout_s if timeout is None else timeout
         before = set(self.client.get_units())
         self.client.wait_for(send(), want_result=False)
         deadline = time.monotonic() + timeout
@@ -185,8 +193,9 @@ class Commander:
             if new:
                 return min(new, key=lambda u: geo.distance_m(lat, lng, u.lat, u.lng)).group_name
             if time.monotonic() >= deadline:
-                log.warning("Spawned %s but could not find its units in Olympus within %.0fs", requested_name, timeout)
-                return requested_name
+                log.warning("Spawned %s but no units appeared in Olympus within %.0fs: DCS refused the spawn "
+                            "(see Olympus_log.txt / dcs.log)", requested_name, timeout)
+                return None
             time.sleep(1.0)
 
     def _marker(self, lat: float, lng: float, text: str) -> None:
@@ -196,10 +205,11 @@ class Commander:
         except Exception as exc:  # markers are cosmetic
             log.debug("Marker failed: %s", exc)
 
-    def _spawn_fighters(self, name: str, tasking_type: str, loadout: str, airbase: str, count: int, heading_deg: float = 0.0) -> str:
+    def _spawn_fighters(self, name: str, tasking_type: str, loadout: str, airbase: str, count: int, heading_deg: float = 0.0,
+                        air: bool | None = None) -> str | None:
         rules = self.scenario.rules
         base_lat, base_lng = self.red_airbases[airbase]
-        air = rules.fighter_spawn == "air"
+        air = rules.fighter_spawn == "air" if air is None else air
         alt_m = rules.air_spawn_altitude_ft * FT if air else 0
         units = []
         for i in range(count):
@@ -213,6 +223,26 @@ class Commander:
         return self._spawn_and_find(requested, units[0]["location"]["lat"], units[0]["location"]["lng"], lambda: self.client.spawn_aircraft(
             requested, units, airbase="" if air else airbase, coalition=self.scenario.coalition,
             country=self.scenario.country, spawn_points=0))
+
+    def _launch(self, name: str, tasking_type: str, loadout: str, airbase: str, count: int,
+                heading_deg: float) -> tuple[str | None, Unit | None]:
+        """Spawn aircraft and return (group name, leader). A ramp spawn DCS refuses (no parking spot that fits, say) is
+        tried once more in the air above the airbase. (None, None) when neither worked."""
+        group_name = self._spawn_fighters(name, tasking_type, loadout, airbase, count, heading_deg)
+        if group_name is None and self.scenario.rules.fighter_spawn == "ramp":
+            log.warning("%s: %dx %s did not spawn on the ramp at %s; trying an air spawn above it", name, count, tasking_type, airbase)
+            group_name = self._spawn_fighters(name + "-air", tasking_type, loadout, airbase, count, heading_deg, air=True)
+        return group_name, self._wait_for_group(group_name)
+
+    def _return_airframes(self, airbase: str, tasking_type: str, count: int) -> None:
+        """Airframes that never left the ground go back to the airbase. The campaign commander keeps the count."""
+
+    def _spawn_failed(self, tasking_type: str, airbase: str, loadout: str, count: int, role: str) -> None:
+        self.spawn_failures.add((airbase, tasking_type, loadout))
+        self._return_airframes(airbase, tasking_type, count)
+        self._event("spawn_failed", type=tasking_type, airbase=airbase, loadout=loadout, role=role, airframes_returned=count,
+                    note="DCS did not create these aircraft (not lost: they never flew). This type and loadout are not "
+                         "tasked from this airbase again; the airframes are back in the airbase's count.")
 
     # ---------- plan execution ----------
     def execute(self, plan: Plan) -> None:
@@ -237,6 +267,9 @@ class Commander:
             group_name = self._spawn_and_find(requested, g.lat, g.lng, lambda: self.client.spawn_ground(
                 requested, units, coalition=self.scenario.coalition, country=self.scenario.country,
                 spawn_points=0))
+            if group_name is None:
+                self._event("spawn_failed", name=g.name, type=g.type, count=g.count)
+                continue
             dark = (item.cls in DARK_CLASSES and item.engagement_range_m > POINT_DEFENCE_MAX_RANGE_M
                     and rules.keep_sams_dark_until_km is not None)
             role = "reserve" if g.role == "reserve" else "artillery" if item.cls in ARTILLERY_CLASSES else "ground"
@@ -265,13 +298,14 @@ class Commander:
     def _launch_sweep(self, f: FighterTasking) -> None:
         route = f.route_points(self.scenario)
         heading = geo.bearing_deg(*self.red_airbases[f.airbase], *route[0])
-        group_name = self._spawn_fighters(f"SWEEP-{f.airbase}-{len(self.groups)}", f.type, f.loadout, f.airbase, f.count, heading)
+        group_name, leader = self._launch(f"SWEEP-{f.airbase}-{len(self.groups)}", f.type, f.loadout, f.airbase, f.count, heading)
+        if leader is None:
+            self._spawn_failed(f.type, f.airbase, f.loadout, f.count, "sweep")
+            return
         self.groups[group_name] = SpawnedGroup(group_name, f.type, "fighter", *self.red_airbases[f.airbase], role="sweep")
-        leader = self._wait_for_group(group_name)
-        if leader:
-            self.client.set_roe(leader.id, "free")
-            self.client.set_altitude(leader.id, self.scenario.rules.sweep_altitude_ft * FT)
-            self.client.set_path(leader.id, route)
+        self.client.set_roe(leader.id, "free")
+        self.client.set_altitude(leader.id, self.scenario.rules.sweep_altitude_ft * FT)
+        self.client.set_path(leader.id, route)
         self._event("sweep", group=group_name, type=f.type, count=f.count, route=route, reason=f.reason)
 
     # ---------- watch loop ----------
@@ -443,13 +477,17 @@ class Commander:
         self.scramble_counter += 1
         heading = geo.bearing_deg(*self.red_airbases[slot.airbase], target.lat, target.lng)
         prefix = "CAS" if slot.role == "cas" else "INT"
-        group_name = self._spawn_fighters(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, slot.loadout, slot.airbase, count, heading)
+        group_name, leader = self._launch(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, slot.loadout, slot.airbase,
+                                          count, heading)
+        if leader is None:
+            # Nothing flew: the whole slot stands down (the next pair would fail the same way) and its airframes go back.
+            self._spawn_failed(slot.type, slot.airbase, slot.loadout, slot.remaining + count, slot.role)
+            slot.remaining = 0
+            return
         cls = self.catalog[slot.type].cls if slot.type in self.catalog else "fighter"
         self.groups[group_name] = SpawnedGroup(group_name, slot.type, cls, *self.red_airbases[slot.airbase], role=slot.role, target_id=target.id)
-        leader = self._wait_for_group(group_name)
-        if leader:
-            self.client.set_roe(leader.id, "free")
-            self.client.attack_unit(leader.id, target.id)
+        self.client.set_roe(leader.id, "free")
+        self.client.attack_unit(leader.id, target.id)
         self._event("scramble", group=group_name, role=slot.role, type=slot.type, count=count, airbase=slot.airbase, target=target.id,
                     left_on_alert=slot.remaining)
 

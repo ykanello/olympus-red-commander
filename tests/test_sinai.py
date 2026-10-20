@@ -387,3 +387,53 @@ def test_alert_pairs_go_after_the_transport_first(scenario, catalog, olympus):
     fake.commands.clear()
     cmd.tick()
     assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"] == [transport.id]
+
+
+def test_a_spawn_dcs_refuses_is_not_a_loss(scenario, catalog, olympus, tmp_path):
+    fake, client = olympus
+    reports = []
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T", event_log=tmp_path / "e.jsonl",
+                            replanner=lambda r: reports.append(r) or CampaignPlan.from_json(
+                                {"summary": "Hold.", "orders": [], "air": []}, "Abu Rudeis"),
+                            review_async=False, spawn_timeout_s=0.5)
+    cmd.execute(CampaignPlan.from_json({"summary": "Cover Abu Rudeis.", "orders": [], "air": [
+        {"type": "MiG-29S", "count": 4, "role": "intercept", "airbase": "Wadi Abu Rish", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": "Two pairs"}]}, "Abu Rudeis"))
+    assert cmd.airframes_left["Wadi Abu Rish"]["MiG-29S"] == 0
+    near = geo.project(*ABU_RUDEIS, 90, 10000)
+    heli = fake.add(category="Helicopter", coalition=2, name="AH-64D_BLK_II", group_name="Apache", lat=near[0], lng=near[1], alt=100)
+    next(u for u in fake.units.values() if u.group_name == "Infantry-1").contacts = [heli.id]
+
+    # DCS refuses the ramp spawn but takes the air spawn above the base: the pair flies.
+    fake.refuse_spawn = lambda body: body["airbaseName"] != ""
+    cmd.last_review -= 300
+    fake.commands.clear()
+    cmd.tick()
+    spawns = [b for n, b in fake.commands if n == "spawnAircrafts"]
+    assert [b["airbaseName"] for b in spawns] == ["Wadi Abu Rish", ""]
+    assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"] == [heli.id]
+    assert cmd.alerts[0].remaining == 2 and not cmd.spawn_failures
+
+    # Now DCS refuses both: nothing is lost, the slot stands down, its airframes go back, and Claude hears why.
+    for u in fake.units.values():
+        if u.category == "Aircraft" and u.coalition == 1:
+            u.alive = False
+    fake.refuse_spawn = lambda body: True
+    cmd.last_review -= 300
+    cmd.tick()
+    events = [json.loads(l) for l in (tmp_path / "e.jsonl").read_text().splitlines()]
+    failed = [e for e in events if e["event"] == "spawn_failed"]
+    assert len(failed) == 1 and failed[0]["airframes_returned"] == 2
+    assert cmd.alerts[0].remaining == 0 and cmd.airframes_left["Wadi Abu Rish"]["MiG-29S"] == 2
+    assert ("Wadi Abu Rish", "MiG-29S", "R-73*2,R-60M*2,R-27R*2") in cmd.spawn_failures
+    assert reports and "spawn_failed" in reports[-1]["why_now"]
+    assert reports[-1]["spawn_failures"] == [{"airbase": "Wadi Abu Rish", "type": "MiG-29S", "loadout": "R-73*2,R-60M*2,R-27R*2"}]
+    assert not any(e["event"] == "group_lost" and e.get("type") == "MiG-29S" and e["group"].startswith("INT2") for e in events)
+
+    # The same airbase, type and loadout cannot be tasked again.
+    plan = CampaignPlan.from_json({"summary": "Again.", "orders": [], "air": [
+        {"type": "MiG-29S", "count": 2, "role": "intercept", "airbase": "Wadi Abu Rish", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": ""}]}, "Abu Rudeis")
+    errors = validate_campaign(plan, scenario, catalog, None, ["Ground-3"], reports[-1]["airframes_left"], opening=False,
+                               situation=reports[-1])[0]
+    assert any("did not spawn" in e for e in errors)

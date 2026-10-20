@@ -78,6 +78,8 @@ class FakeOlympus:
         self.execution_results: dict[str, object] = {}
         # Terrain for executeFile probes: (lat, lng) -> (wet points, slope, obstacles). None: executeFile unsupported.
         self.terrain = lambda lat, lng: (0, 0.0, 0)
+        # Spawns DCS refuses (the command runs, no units appear): body -> True to refuse.
+        self.refuse_spawn = lambda body: False
 
     def add(self, **kw) -> FakeUnit:
         u = FakeUnit(id=next(self._ids), **kw)
@@ -88,6 +90,8 @@ class FakeOlympus:
         return [name for name, _ in self.commands]
 
     def _spawn(self, body: dict, category: str) -> None:
+        if self.refuse_spawn(body):
+            return
         group_name = body["groupName"] if self.honour_group_name else f"Olympus-{next(self._groups)}"
         for i, spec in enumerate(body["units"]):
             loc = spec["location"]

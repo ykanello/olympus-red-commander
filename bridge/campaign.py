@@ -32,7 +32,7 @@ COLUMN_SPACING_M = 35  # between vehicles of a convoy at the staging area
 SLOT_SPACING_M = 250  # between convoys at the staging area
 GROUND_ROLES = ("convoy", "artillery")
 REVIEW_EVENTS = {"group_lost", "arrived", "hold_started", "hold_broken", "target_taken", "campaign_lost", "defence_threatened",
-                 "missiles_ready"}
+                 "missiles_ready", "spawn_failed"}
 WAITING, FIRING, READY, EMPTY, GONE, ABSENT = (
     "waiting for the mission's strike", "firing", "ready", "no missiles left", "destroyed", "not in the mission (yet)")
 MISSION_ORDERS = "mission orders"  # status of a mission group Claude has not given an order yet
@@ -72,7 +72,7 @@ Your forces:
 
 Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.
 
-Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone.
+Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone. spawn_failed means DCS would not create an air tasking's aircraft: nothing was lost, the airframes are back in airframes_left, and that airbase, type and loadout (situation.spawn_failures) cannot be tasked again; use another loadout or airbase.
 
 You are asked for the opening orders, then for a review every replan_minutes and after big events (a group lost or arriving, a defend zone threatened, the hold starting or breaking). Each time return the same structure: summary is your assessment in two or three sentences, orders are for your ground groups, air adds air taskings from the airframes left. Return empty lists when nothing should change. Keep every reason to one line."""
 
@@ -348,6 +348,11 @@ def validate_campaign(plan: CampaignPlan, scenario: Scenario, catalog: Catalog, 
                 errors.append(f"{a.type} sweep: needs at least one waypoint")
             check_points(f"{a.type} sweep", a.sweep_route)
 
+    for f in (situation or {}).get("spawn_failures", []):
+        for a in plan.air:
+            if (a.airbase, a.type, a.loadout) == (f["airbase"], f["type"], f["loadout"]):
+                errors.append(f"{a.type} with '{a.loadout}' did not spawn at {a.airbase} before; use another loadout or airbase")
+
     if airframes is not None:
         wanted: Counter = Counter()
         for a in plan.air:
@@ -559,6 +564,11 @@ class CampaignCommander(Commander):
         for k, v in state.get("campaign", {}).items():
             setattr(self, k, v)
 
+    def _return_airframes(self, airbase: str, tasking_type: str, count: int) -> None:
+        if self.airframes_left:
+            base = self.airframes_left.setdefault(airbase, {})
+            base[tasking_type] = base.get(tasking_type, 0) + count
+
     def _labels(self) -> dict[str, SpawnedGroup]:
         return {g.label: g for g in self.groups.values() if g.role in GROUND_ROLES}
 
@@ -655,6 +665,9 @@ class CampaignCommander(Commander):
         requested = self._group_name(label)
         group_name = self._spawn_and_find(requested, lat, lng, lambda: self.client.spawn_ground(
             requested, units, coalition=self.scenario.coalition, country=self.scenario.country, spawn_points=0), radius_m=2000)
+        if group_name is None:
+            self._event("spawn_failed", name=label, role=role, types=dict(Counter(types)))
+            return
         main = Counter(types).most_common(1)[0][0]
         g = SpawnedGroup(group_name, main, self.catalog[main].cls, lat, lng, role=role, label=label,
                          route=[list(p) for p in route], depart_at=time.time() + depart_min * 60, status="waiting")
@@ -940,6 +953,8 @@ class CampaignCommander(Commander):
                                        "your_ground_units_inside": count_in(red_ground, z)} for z in self.camp.defend]
         if self.scenario.warehouses:
             report["airframes_left"] = {b: {t: n for t, n in types.items() if n > 0} for b, types in self.airframes_left.items()}
+        if self.spawn_failures:
+            report["spawn_failures"] = [{"airbase": b, "type": t, "loadout": l} for b, t, l in sorted(self.spawn_failures)]
         if self.awaiting:
             report["groups_not_in_mission_yet"] = self.awaiting
         if self.batteries:

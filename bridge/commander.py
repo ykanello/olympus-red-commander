@@ -89,6 +89,7 @@ class Commander:
     check_terrain: bool = True
     spawn_timeout_s: float = 20.0  # how long a spawn's units get to show up in Olympus before it counts as refused
     spawn_failures: set = field(default_factory=set)  # (airbase, type, loadout) DCS refused to spawn
+    no_ramp: set = field(default_factory=set)  # (airbase, type) DCS would not put on the ramp: these spawn in the air
 
     # ---------- helpers ----------
     def _event(self, kind: str, **data) -> None:
@@ -106,6 +107,7 @@ class Commander:
             "groups": [dataclasses.asdict(g) for g in self.groups.values()],
             "alerts": [dataclasses.asdict(a) for a in self.alerts],
             "spawn_failures": sorted(self.spawn_failures),
+            "no_ramp": sorted(self.no_ramp),
         }
 
     def save_state(self) -> None:
@@ -123,6 +125,7 @@ class Commander:
         self.groups = {g["name"]: SpawnedGroup(**g) for g in state["groups"]}
         self.alerts = [AlertSlot(**a) for a in state["alerts"]]
         self.spawn_failures = {tuple(f) for f in state.get("spawn_failures", [])}
+        self.no_ramp = {tuple(f) for f in state.get("no_ramp", [])}
 
     # ---------- terrain ----------
     def _footprint_m(self, g) -> float:
@@ -227,11 +230,18 @@ class Commander:
     def _launch(self, name: str, tasking_type: str, loadout: str, airbase: str, count: int,
                 heading_deg: float) -> tuple[str | None, Unit | None]:
         """Spawn aircraft and return (group name, leader). A ramp spawn DCS refuses (no parking spot that fits, say) is
-        tried once more in the air above the airbase. (None, None) when neither worked."""
-        group_name = self._spawn_fighters(name, tasking_type, loadout, airbase, count, heading_deg)
-        if group_name is None and self.scenario.rules.fighter_spawn == "ramp":
-            log.warning("%s: %dx %s did not spawn on the ramp at %s; trying an air spawn above it", name, count, tasking_type, airbase)
-            group_name = self._spawn_fighters(name + "-air", tasking_type, loadout, airbase, count, heading_deg, air=True)
+        tried once more in the air above the airbase, and that type spawns in the air there from then on.
+        (None, None) when neither worked."""
+        if (airbase, tasking_type) in self.no_ramp:
+            group_name = self._spawn_fighters(name, tasking_type, loadout, airbase, count, heading_deg, air=True)
+        else:
+            group_name = self._spawn_fighters(name, tasking_type, loadout, airbase, count, heading_deg)
+            if group_name is None and self.scenario.rules.fighter_spawn == "ramp":
+                log.warning("%s: %dx %s did not spawn on the ramp at %s; trying an air spawn above it", name, count, tasking_type, airbase)
+                group_name = self._spawn_fighters(name + "-air", tasking_type, loadout, airbase, count, heading_deg, air=True)
+                if group_name is not None:
+                    log.info("%s at %s spawn in the air from now on", tasking_type, airbase)
+                    self.no_ramp.add((airbase, tasking_type))
         return group_name, self._wait_for_group(group_name)
 
     def _return_airframes(self, airbase: str, tasking_type: str, count: int) -> None:

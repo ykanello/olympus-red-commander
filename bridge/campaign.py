@@ -48,7 +48,7 @@ How your plan is used:
 - Convoys: each is one DCS group of up to max_group_units vehicles, types may be mixed. A convoy spawns at the staging area, sets off depart_min minutes after the start and drives its route, keeping to roads where it can. Where the route ends is where it stops. A convoy with an empty route waits at the staging area for your orders: a reserve.
 - Give convoys their own short-range air defence (classes sam_short and aaa) so they are not defenceless from the air. Fixed SAM batteries cannot move and are not offered.
 - Artillery batteries drive to their firing position, then fire on detected enemy ground units within range, never on a target close to Red ground units. Place them so their range reaches where your convoys will fight.
-- All aircraft fly from the HQ airbase. sweep: launches at the start and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near Red ground forces or the target. cas: waits on alert and is scrambled in pairs against detected enemy ground units near Red ground forces or the target. Loadouts only from the lists on the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas.
+- All aircraft fly from the HQ airbase. sweep: launches at the start and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near Red ground forces or the target. cas: waits on alert and is scrambled in pairs against detected enemy ground units and helicopters near Red ground forces or the target. Loadouts only from the lists on the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 - Points you do not spend stay available. At later reviews you can buy reinforcements, which spawn at the staging area or the HQ.
 
@@ -68,7 +68,7 @@ Your forces:
 - Ground: only the groups in red_ground_groups, which are already in the mission. No ground units can be bought or spawned, so a group lost is gone for good. A group keeps doing what the mission gave it (status "mission orders": its own route, or standing where it is) until you order it. Orders: move (with a route; it drives the route, keeping to roads where it can, and stops at the last point), hold (stop where it is) or return (drive back to where it started).
 - Artillery groups fire on detected enemy ground units within range, never on a target close to Red ground units. Move them so their range covers where your ground forces will fight.
 - Everything else Red has (air defence, radars, missile launchers, ships) is run by the mission. You do not command it.
-- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. Keep airframes back for later; the enemy will come more than once.
+- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. Keep airframes back for later; the enemy will come more than once.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 
 Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.
@@ -740,7 +740,9 @@ class CampaignCommander(Commander):
         self._move_groups(units)
         super().tick(units)
         enemy_ground = self.detected_enemy_ground(units)
-        self._air_response(units, "cas", enemy_ground)
+        # Attack helicopters fight low over the ground forces: close air support goes after them too.
+        helicopters = {i: u for i, u in self.detected_enemy_air(units).items() if u.category == "Helicopter"}
+        self._air_response(units, "cas", {**enemy_ground, **helicopters})
         self._watch_defence(enemy_ground)
         if self.batteries:
             self._watch_missiles(units)

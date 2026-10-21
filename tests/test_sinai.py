@@ -460,3 +460,19 @@ def test_command_groups_match_any_case_and_wildcards(scenario, catalog, olympus)
              is_leader=True)
     cmd.tick()
     assert "insurgent-technical-3" in cmd.groups and "Red RT" not in cmd.groups and "Scud" not in cmd.groups
+
+
+def test_cas_alert_goes_after_helicopters(scenario, catalog, olympus):
+    fake, client = olympus
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.execute(CampaignPlan.from_json({"summary": "Su-25s on call.", "orders": [], "air": [
+        {"type": "Su-25T", "count": 2, "role": "cas", "airbase": "Abu Rudeis", "loadout": "RBK-500AO*4,UB-32*2,R-60M*2,Fuel*2",
+         "sweep_route": [], "reason": "On call"}]}, "Abu Rudeis"))
+    near = geo.project(*ST_CATHERINE, 270, 6000)
+    apache = fake.add(category="Helicopter", coalition=2, name="AH-64D_BLK_II", group_name="Apache", lat=near[0], lng=near[1], alt=60)
+    next(u for u in fake.units.values() if u.group_name == "Ground-3").contacts = [apache.id]
+    fake.commands.clear()
+    cmd.tick()
+    spawned = [b for n, b in fake.commands if n == "spawnAircrafts"]
+    assert len(spawned) == 1 and spawned[0]["units"][0]["unitType"] == "Su-25T"
+    assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"] == [apache.id]

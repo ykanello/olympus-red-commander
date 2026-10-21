@@ -10,9 +10,11 @@ era: null                        # every era: the mission decides what Red has
 campaign:
   hq: Abu Rudeis                 # Red airbase named as Red's HQ in Claude's brief
   spawn_ground: false            # do not deploy extra ground units
-  command_groups:                # mission editor group names; every other Red group is left to the mission
-    - Ground-3                   # 2 T-55, 2 BTR-82A, 8 km west of St Catherine
-    - Insurgents                 # 12 DShK technicals, 10 km west of St Catherine (their mission route runs into the airport)
+  command_groups:                # mission editor group names, any case; * matches anything. Every other Red group is left to the mission
+    - insurgents-armor*          # the armour around St Catherine's Blue positions
+    - insurgent-technical-*      # the 12 single technicals around them
+    - Ground-3                   # 2 T-55, 2 BTR-82A, 8 km west of St Catherine (older mission versions)
+    - Insurgents                 # 12 DShK technicals, 10 km west of St Catherine (older mission versions)
     - Red RT                     # 2 Dana howitzers and a GAZ-66, 29 km east of Abu Rudeis
     - Red RT-1                   # Type 59 tank and an M1296 Stryker, same place
     - Insurgents-1               # Igla team and 2 DShK technicals, same place

@@ -413,6 +413,12 @@ def test_a_spawn_dcs_refuses_is_not_a_loss(scenario, catalog, olympus, tmp_path)
     assert [b["airbaseName"] for b in spawns] == ["Wadi Abu Rish", ""]
     assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"] == [heli.id]
     assert cmd.alerts[0].remaining == 2 and not cmd.spawn_failures
+    assert cmd.no_ramp == {("Wadi Abu Rish", "MiG-29S")}
+    # The next pair goes straight to the air, without waiting on the ramp first.
+    fake.commands.clear()
+    cmd._scramble(cmd.alerts[0], heli)
+    assert [b["airbaseName"] for n, b in fake.commands if n == "spawnAircrafts"] == [""]
+    cmd.alerts[0].remaining = 2
 
     # Now DCS refuses both: nothing is lost, the slot stands down, its airframes go back, and Claude hears why.
     for u in fake.units.values():

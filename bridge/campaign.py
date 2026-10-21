@@ -9,6 +9,7 @@ fire missions. A referee, which unlike Red sees everything, decides when the tar
 from __future__ import annotations
 
 import concurrent.futures
+import fnmatch
 import logging
 import math
 import time
@@ -516,6 +517,14 @@ class CampaignPlanner(Planner):
 
 # ---------- execution ----------
 
+def is_pattern(name: str) -> bool:
+    return any(c in name for c in "*?[")
+
+
+def matches(entry: str, group_name: str) -> bool:
+    """A command_groups entry against a mission group name: case-insensitive, with * and ? wildcards."""
+    return fnmatch.fnmatchcase(group_name.lower(), entry.lower())
+
 @dataclass
 class CampaignCommander(Commander):
     replanner: Callable[[dict], CampaignPlan] | None = None  # reviews; None: the opening plan runs to the end
@@ -578,8 +587,11 @@ class CampaignCommander(Commander):
         self.started_at = self.last_review = time.time()
         if self.scenario.warehouses:
             self.airframes_left = {base: dict(types) for base, types in self.scenario.warehouses.stock.items()}
-        self.awaiting = list(self.camp.command_groups)
+        self.awaiting = [n for n in self.camp.command_groups if not is_pattern(n)]
         self._adopt(units)
+        for pattern in filter(is_pattern, self.camp.command_groups):
+            if not any(matches(pattern, g.name) for g in self.groups.values()):
+                log.warning("No Red ground group in the mission matches '%s' (yet).", pattern)
         if self.scenario.missiles:
             first = WAITING if self.scenario.missiles.wait_for_mission_strike else READY
             self.batteries = {g: {"status": first, "missiles_left": None, "launched": 0, "last_launch": 0.0, "seen": False}
@@ -595,11 +607,20 @@ class CampaignCommander(Commander):
         return self.situation(units, ["opening"])
 
     def _adopt(self, units: dict[int, Unit]) -> None:
-        for name in list(self.awaiting):
+        """Take command of the listed mission groups that are in the mission now. Names match whatever the case; a name with
+        * or ? is a pattern that takes every group it matches, including ones that appear later."""
+        missile_groups = set(self.scenario.missiles.groups) if self.scenario.missiles else set()
+        red = {u.group_name for u in units.values() if u.alive and u.coalition == self.scenario.coalition
+               and u.category in GROUND_CATEGORIES and u.group_name} - set(self.groups) - missile_groups
+        patterns = [n for n in self.camp.command_groups if is_pattern(n)]
+        for name in sorted(red):
+            entry = next((a for a in self.awaiting if matches(a, name)), None)
+            if entry is None and not any(matches(p, name) for p in patterns):
+                continue
+            if entry is not None:
+                self.awaiting.remove(entry)
             members = [u for u in units.values() if u.group_name == name and u.alive and u.coalition == self.scenario.coalition
                        and u.category in GROUND_CATEGORIES]
-            if not members:
-                continue
             leader = self._leader(units, name)
             types = Counter(u.name for u in members)
             kinds = {t: self.catalog.describe(t) for t in types}
@@ -608,7 +629,6 @@ class CampaignCommander(Commander):
             g = SpawnedGroup(name, main, kinds[main].cls, leader.lat, leader.lng, role="artillery" if guns else "convoy",
                              label=name, status=MISSION_ORDERS)
             self.groups[name] = g
-            self.awaiting.remove(name)
             self._event("command_taken", group=name, role=g.role, types=dict(types))
 
     # ----- spawning -----
@@ -715,7 +735,7 @@ class CampaignCommander(Commander):
 
     def tick(self, units: dict[int, Unit] | None = None) -> None:
         units = self.client.get_units() if units is None else units
-        if self.awaiting:
+        if self.awaiting or any(map(is_pattern, self.camp.command_groups)):
             self._adopt(units)
         self._move_groups(units)
         super().tick(units)

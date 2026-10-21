@@ -437,3 +437,20 @@ def test_a_spawn_dcs_refuses_is_not_a_loss(scenario, catalog, olympus, tmp_path)
     errors = validate_campaign(plan, scenario, catalog, None, ["Ground-3"], reports[-1]["airframes_left"], opening=False,
                                situation=reports[-1])[0]
     assert any("did not spawn" in e for e in errors)
+
+
+def test_command_groups_match_any_case_and_wildcards(scenario, catalog, olympus):
+    fake, client = olympus
+    scenario.campaign.command_groups = ["ground-3", "insurgent-technical-*"]
+    west = geo.project(*ST_CATHERINE, 270, 5000)
+    for i in (1, 2):
+        fake.add(category="GroundUnit", coalition=1, name="HL_DSHK", group_name=f"Insurgent-Technical-{i}",
+                 lat=west[0], lng=west[1] + i * 0.001, is_leader=True)
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.take_command(client.get_units())
+    assert set(cmd.groups) == {"Ground-3", "Insurgent-Technical-1", "Insurgent-Technical-2"} and cmd.awaiting == []
+    # A group the pattern matches that appears later is taken too; the mission's other groups are not.
+    fake.add(category="GroundUnit", coalition=1, name="HL_DSHK", group_name="insurgent-technical-3", lat=west[0], lng=west[1],
+             is_leader=True)
+    cmd.tick()
+    assert "insurgent-technical-3" in cmd.groups and "Red RT" not in cmd.groups and "Scud" not in cmd.groups

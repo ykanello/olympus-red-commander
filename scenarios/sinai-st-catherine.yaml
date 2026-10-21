@@ -11,10 +11,8 @@ campaign:
   hq: Abu Rudeis                 # Red airbase named as Red's HQ in Claude's brief
   spawn_ground: false            # do not deploy extra ground units
   command_groups:                # mission editor group names, any case; * matches anything. Every other Red group is left to the mission
-    - insurgents-armor*          # the armour around St Catherine's Blue positions
-    - insurgent-technical-*      # the 12 single technicals around them
-    - Ground-3                   # 2 T-55, 2 BTR-82A, 8 km west of St Catherine (older mission versions)
-    - Insurgents                 # 12 DShK technicals, 10 km west of St Catherine (older mission versions)
+    - insurgent*armor*           # 2 T-55 and 2 BTR-82A around St Catherine's Blue positions
+    - insurgent*technical*       # the 12 single DShK technicals around them
     - Red RT                     # 2 Dana howitzers and a GAZ-66, 29 km east of Abu Rudeis
     - Red RT-1                   # Type 59 tank and an M1296 Stryker, same place
     - Insurgents-1               # Igla team and 2 DShK technicals, same place
@@ -29,6 +27,9 @@ campaign:
     Abu Rudeis is the key: keep Blue from controlling the air over it and shoot down any transport heading there. Red's
     long-range missile fighters are few (the 4 MiG-29S), so spend them on what matters. Use the Su-25s and Su-24Ms as
     close air support against Blue ground units that threaten Abu Rudeis, the missile base or Red's forces at St Catherine.
+    The insurgent armour and technicals around St Catherine are the attack force: they are there to take the airport, so
+    send them in, the technicals spread around the armour, and keep the Su-25s on call to support them. The groups at
+    Abu Rudeis and El Tor hold.
   hold_minutes: 10               # Red takes St Catherine by holding it this long with no Blue ground units inside
   replan_minutes: 10             # Claude reviews this often...
   min_replan_gap_minutes: 2      # ...and after big events (a group lost, a defend zone threatened), never more often than this

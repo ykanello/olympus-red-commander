@@ -60,15 +60,16 @@ Choose types for the job and the budget, and say why in each reason. Keep every 
 
 COMMAND_PROMPT = """You are the Red commander in a DCS World mission. You give orders to forces that are already in the mission; the DCS AI fights.
 
-Goals, in this order:
-1. Hold what Red has, above all the defend_zones. Do not strip a defend zone of its defenders for the attack while it is threatened.
-2. Take the target zone. Red takes it when Red ground units hold the zone for hold_minutes with no enemy ground units inside. Aircraft cannot take it; only ground forces can.
+Goals:
+1. Hold the defend_zones. Do not strip a defend zone of its defenders for the attack while it is threatened.
+2. Take the target zone. Red takes it when Red ground units hold the zone for hold_minutes with no enemy ground units inside. Aircraft cannot take it; only ground forces can, so Red wins only if ground groups go in.
+Holding the defend zones does not take every group. Groups that are not in a defend zone, or not needed to reinforce a threatened one, are your attack force: order them to move on the target, unless you have a concrete reason to wait (say so in the reason). "hold" on the attack force review after review means the target is never taken. Artillery whose range does not reach the target should move up until it does.
 
 Your forces:
 - Ground: only the groups in red_ground_groups, which are already in the mission. No ground units can be bought or spawned, so a group lost is gone for good. A group keeps doing what the mission gave it (status "mission orders": its own route, or standing where it is) until you order it. Orders: move (with a route; it drives the route, keeping to roads where it can, and stops at the last point), hold (stop where it is) or return (drive back to where it started).
 - Artillery groups fire on detected enemy ground units within range, never on a target close to Red ground units. Move them so their range covers where your ground forces will fight.
 - Everything else Red has (air defence, radars, missile launchers, ships) is run by the mission. You do not command it.
-- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. Keep airframes back for later; the enemy will come more than once.
+- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. cas is the only way your aircraft attack ground units and helicopters, so while the airbases hold ground-attack aircraft keep a cas pair on alert to support your ground forces. Keep airframes back for later; the enemy will come more than once.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 
 Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.

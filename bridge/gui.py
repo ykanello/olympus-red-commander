@@ -397,6 +397,7 @@ class App:
         for child in self.form_frame.winfo_children():
             child.destroy()
         path = ROOT / self.scenario_var.get()
+        self.scenario_mtime = path.stat().st_mtime if path.exists() else None
         try:
             self.scenario_doc = load_doc(path)
         except Exception as exc:  # a YAML error: show it, the file can still be fixed in the editor
@@ -426,11 +427,22 @@ class App:
             if not chosen:
                 return False
             path = Path(chosen)
+        stale = not ask and path.exists() and path.stat().st_mtime != getattr(self, "scenario_mtime", None)
         tmp = path.with_name(path.name + ".tmp")
         try:
             changed = [form.apply(self.scenario_doc) for form in self.scenario_forms]
             if not ask and not any(changed):
+                if stale:
+                    self.load_scenario()
                 return True
+            if stale and messagebox.askyesno(
+                    "Scenario changed on disk",
+                    f"{path.name} was changed outside this window since it was loaded (by a git pull, say).\n\n"
+                    "Yes: load the file from disk and drop the edits made here (then redo them).\n"
+                    "No: overwrite the file with what this window shows."):
+                self.load_scenario()
+                self.note(f"Reloaded {path.name} from disk; redo your edits and start again")
+                return False
             dump_doc(self.scenario_doc, tmp)
             check_scenario(tmp)  # the same checks the bridge makes
         except Exception as exc:

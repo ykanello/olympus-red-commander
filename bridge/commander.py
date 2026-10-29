@@ -396,15 +396,25 @@ class Commander:
                 assigned.add(target.id)
                 self._event("retask", group=g.name, target=target.id)
 
-        o = self.scenario.objective
-        for t in sorted(threats.values(), key=lambda t: (not self._priority(t), geo.distance_m(o.lat, o.lng, t.lat, t.lng))):
-            if t.id in assigned or not self._in_response_zone(t, units):
-                continue
+        # Match the threat: intercept pairs by the number of enemy aircraft, cas pairs by the number of enemy groups.
+        rules, o = self.scenario.rules, self.scenario.objective
+        in_zone = [t for t in threats.values() if self._in_response_zone(t, units)]
+        if role == "cas":
+            wanted = len({t.group_name or t.id for t in in_zone})
+        else:
+            wanted = math.ceil(len(in_zone) / max(rules.enemy_aircraft_per_pair, 1e-9))
+        if rules.max_airborne_pairs is not None:
+            wanted = min(wanted, rules.max_airborne_pairs)
+        airborne = sum(1 for g in self.groups.values() if g.role == role)
+        for t in sorted(in_zone, key=lambda t: (not self._priority(t), geo.distance_m(o.lat, o.lng, t.lat, t.lng))):
+            if t.id in assigned or (airborne >= wanted and not self._priority(t)):
+                continue  # a priority target (a transport) gets a pair even past the limit
             slot = self._pick_alert(t, role)
             if slot is None:
                 break
             self._scramble(slot, t)
             assigned.add(t.id)
+            airborne += 1
 
     def _drive(self, leader: Unit, g: SpawnedGroup, target: Unit) -> None:
         self.client.set_path(leader.id, [(target.lat, target.lng)])

@@ -476,3 +476,31 @@ def test_cas_alert_goes_after_helicopters(scenario, catalog, olympus):
     spawned = [b for n, b in fake.commands if n == "spawnAircrafts"]
     assert len(spawned) == 1 and spawned[0]["units"][0]["unitType"] == "Su-25T"
     assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"] == [apache.id]
+
+
+def test_alert_pairs_match_the_size_of_the_threat(scenario, catalog, olympus):
+    fake, client = olympus
+    assert scenario.rules.enemy_aircraft_per_pair == 2 and scenario.rules.max_airborne_pairs == 4
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.execute(CampaignPlan.from_json({"summary": "Plenty on alert.", "orders": [], "air": [
+        {"type": "MiG-29S", "count": 4, "role": "intercept", "airbase": "Wadi Abu Rish", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": ""},
+        {"type": "MiG-29S", "count": 4, "role": "intercept", "airbase": "Abu Rudeis", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": ""},
+        {"type": "Su-25T", "count": 2, "role": "cas", "airbase": "Abu Rudeis", "loadout": "RBK-500AO*4,UB-32*2,R-60M*2,Fuel*2",
+         "sweep_route": [], "reason": ""}]}, "Abu Rudeis"))
+    scout = next(u for u in fake.units.values() if u.group_name == "Infantry-1")
+    near = geo.project(*ABU_RUDEIS, 90, 15000)
+    fighters = [fake.add(category="Aircraft", coalition=2, name="F-16C_50", group_name=f"Viper-{i // 2}",
+                         lat=near[0], lng=near[1] + i * 0.01, alt=6000) for i in range(6)]
+    scout.contacts = [f.id for f in fighters]
+    fake.commands.clear()
+    cmd.tick()
+    assert sum(1 for n, _ in fake.commands if n == "spawnAircrafts") == 3  # 6 F-16s: 3 pairs, not 6
+    # A transport still gets a pair past the limit.
+    c130 = fake.add(category="Aircraft", coalition=2, name="C-130J-30", group_name="Trash", lat=near[0], lng=near[1], alt=3000)
+    scout.contacts.append(c130.id)
+    fake.commands.clear()
+    cmd.tick()
+    assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"][-1:] == [c130.id]
+    assert sum(1 for n, _ in fake.commands if n == "spawnAircrafts") == 1

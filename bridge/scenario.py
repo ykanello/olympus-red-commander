@@ -76,6 +76,8 @@ class Rules:
     max_distance_from_objective_km: float = 60
     scramble_when_contact_within_km: float = 80
     scramble_pair_size: int = 2
+    enemy_aircraft_per_pair: float = 1  # intercept pairs airborne: one for every this many enemy aircraft in the response zone
+    max_airborne_pairs: int | None = None  # never more alert pairs of one role (intercept, cas) in the air than this
     fighter_spawn: str = "ramp"  # "ramp" (hot start at the airbase) or "air" (airborne above it)
     air_spawn_altitude_ft: float = 10000
     sweep_altitude_ft: float = 25000

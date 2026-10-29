@@ -12,7 +12,7 @@ campaign:
   spawn_ground: false            # do not deploy extra ground units
   command_groups:                # mission editor group names, any case; * matches anything. Every other Red group is left to the mission
     - insurgent*armor*           # 2 T-55 and 2 BTR-82A around St Catherine's Blue positions
-    - insurgent*technical*       # the 12 single DShK technicals around them
+    - insurgent*tech*            # the 13 single DShK technicals around them (named Insurgents-techincal-N in the mission)
     - Red RT                     # 2 Dana howitzers and a GAZ-66, 29 km east of Abu Rudeis
     - Red RT-1                   # Type 59 tank and an M1296 Stryker, same place
     - Insurgents-1               # Igla team and 2 DShK technicals, same place
@@ -25,8 +25,10 @@ campaign:
     Blue has no AWACS and no radars, only its aircraft, flying from Ovda. To win, Blue must hold St Catherine, win the
     air over Abu Rudeis, then land a C-130 near Abu Rudeis carrying an MLRS to destroy the missile base at El Tor.
     Abu Rudeis is the key: keep Blue from controlling the air over it and shoot down any transport heading there. Red's
-    long-range missile fighters are few (the 4 MiG-29S), so spend them on what matters. Use the Su-25s and Su-24Ms as
-    close air support against Blue ground units that threaten Abu Rudeis, the missile base or Red's forces at St Catherine.
+    long-range missile fighters are few (the 4 MiG-29S at Wadi Abu Rish), so spend them on what matters. Use the Su-25s
+    (2 at Abu Rudeis, 12 at Tabuk) as close air support against Blue ground units and helicopters that threaten Abu Rudeis,
+    the missile base or Red's forces at St Catherine. Tabuk is far east, about 250 km from St Catherine: its aircraft take
+    longer to arrive.
     The insurgent armour and technicals around St Catherine are the attack force: they are there to take the airport, so
     send them in, the technicals spread around the armour, and keep the Su-25s on call to support them. The groups at
     Abu Rudeis and El Tor hold.
@@ -44,12 +46,12 @@ warehouses:
   # The mission file the warehouses are read from: the .miz you run, on this machine.
   mission_file: "C:/Users/YOU/Saved Games/DCS/Missions/Sinai Base Mission.miz"
   airbases:                      # Red airbase as Olympus names it: its airport ID in the mission's warehouses
-    Abu Rudeis: 26                       # 4 MiG-29 (9.12), 2 Su-25
-    Sharm El Sheikh International Airport: 42   # 8 Su-24M
-    Hurghada International Airport: 38   # 18 MiG-23MLD
-    Wadi Abu Rish: 43                    # 12 MiG-29 (9.12), 4 MiG-29S
+    Abu Rudeis: 26                       # 2 Su-25, 2 Mi-8MT, 1 Ka-50
+    Wadi Abu Rish: 43                    # 8 Su-27, 12 MiG-29 Fulcrum, 12 MiG-29A, 4 MiG-29S
+    Al Bahr al Ahmar: 44                 # 48 MiG-23MLD
+    Tabuk: 47                            # 8 MiG-25PD, 24 MiG-21Bis, 12 Su-25, 12 MiG-29 Fulcrum, 12 MiG-29A
   # These four show 100 airframes at almost every airfield of the map, Blue and neutral too: warehouse defaults, not Red's air force.
-  ignore_types: [F-100D, F-14A-95-GR, F-14BU, VSN_F104C]
+  ignore_types: [F-100D, F-14A-95-GR, F-14BU, VSN_F104C, Ka-50, Mi-8MT]   # the last two: helicopters, which the bridge does not fly
   spawn_as:                      # warehouse type: the Olympus type spawned for it (the stock still counts down)
     MiG-29 Fulcrum: MiG-29A
 

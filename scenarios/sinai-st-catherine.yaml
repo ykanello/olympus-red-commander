@@ -90,6 +90,8 @@ rules:
   scramble_when_contact_within_km: 60   # alert aircraft launch against threats this close to St Catherine or a defend zone
   priority_air_targets: [C-130J-30, C-130]   # alert pairs go after a transport before anything else
   scramble_pair_size: 2
+  enemy_aircraft_per_pair: 2           # one intercept pair airborne for every 2 Blue aircraft near Red's forces
+  max_airborne_pairs: 4                # and never more than 4 intercept or 4 CAS pairs in the air at once
   fighter_spawn: ramp
   artillery_fire: true
   fire_mission_every_s: 90

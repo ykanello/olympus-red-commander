@@ -69,7 +69,7 @@ Your forces:
 - Ground: only the groups in red_ground_groups, which are already in the mission. No ground units can be bought or spawned, so a group lost is gone for good. A group keeps doing what the mission gave it (status "mission orders": its own route, or standing where it is) until you order it. Orders: move (with a route; it drives the route, keeping to roads where it can, and stops at the last point), hold (stop where it is) or return (drive back to where it started).
 - Artillery groups fire on detected enemy ground units within range, never on a target close to Red ground units. Move them so their range covers where your ground forces will fight.
 - Everything else Red has (air defence, radars, missile launchers, ships) is run by the mission. You do not command it.
-- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. cas is the only way your aircraft attack ground units and helicopters, so while the airbases hold ground-attack aircraft keep a cas pair on alert to support your ground forces. Keep airframes back for later; the enemy will come more than once.
+- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. cas is the only way your aircraft attack ground units and helicopters, so while the airbases hold ground-attack aircraft keep a cas pair on alert to support your ground forces. Pairs on alert launch only as the threat needs (rules: intercept_pairs_per_enemy_aircraft; cas, one pair per enemy group), so add alert taskings only when situation.on_alert runs low: every airframe you task is spent from its warehouse. Keep airframes back for later; the enemy will come more than once.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 
 Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.
@@ -465,6 +465,8 @@ class CampaignPlanner(Planner):
             "scramble_when_contact_within_km": scenario.rules.scramble_when_contact_within_km,
             "artillery_fire": scenario.rules.artillery_fire, "no_fire_near_friendly_m": scenario.rules.no_fire_near_friendly_m,
             "scramble_pair_size": scenario.rules.scramble_pair_size, "sweep_altitude_ft": scenario.rules.sweep_altitude_ft,
+            "intercept_pairs_per_enemy_aircraft": round(1 / scenario.rules.enemy_aircraft_per_pair, 2),
+            **({"max_airborne_pairs_per_role": scenario.rules.max_airborne_pairs} if scenario.rules.max_airborne_pairs else {}),
         }
         if camp.spawn_ground:
             brief["budget_points"] = scenario.budget_points
@@ -616,8 +618,8 @@ class CampaignCommander(Commander):
         patterns = [n for n in self.camp.command_groups if is_pattern(n)]
         for name in sorted(red):
             entry = next((a for a in self.awaiting if matches(a, name)), None)
-            if entry is None and not any(matches(p, name) for p in patterns):
-                continue
+            if entry is None and ("_dismounted_" in name or not any(matches(p, name) for p in patterns)):
+                continue  # the infantry DCS dismounts from a hit vehicle is not one of the groups the patterns mean
             if entry is not None:
                 self.awaiting.remove(entry)
             members = [u for u in units.values() if u.group_name == name and u.alive and u.coalition == self.scenario.coalition

@@ -110,7 +110,9 @@ python -m bridge run  scenarios/take-kutaisi.yaml --no-reviews   # opening plan 
   The referee that decides this sees everything; Red's own decisions only ever use what Red detects.
 
 Every step goes to the events log: `spawned`, `depart`, `arrived`, `scramble` (with `role: cas` for ground attack),
-`fire_mission`, `review` (Claude's assessment), `order`, `hold_started`, `hold_broken`, `target_taken`, `campaign_lost`.
+`fire_mission`, `review` (Claude's assessment), `order`, `hold_started`, `hold_broken`, `target_taken`, `campaign_lost`,
+`aircraft_lost` (one Red aircraft of a pair, with how many still fly), `enemy_aircraft_down` (a detected Blue aircraft
+shot down; DCS does not say by whom), `break_off`, `cas_held`.
 
 ## Commanding the mission's own forces
 
@@ -142,6 +144,16 @@ Before the first run, set `warehouses.mission_file` to the .miz you run (on the 
   win, and what Red must stop). Claude gets it in its brief and plans by it.
 - **`rules.priority_air_targets`** lists enemy aircraft types that alert pairs go after before anything else (the
   C-130 in the Sinai mission), in every mode.
+- **`rules.cas_waits_for_enemy_fighters`** (on by default) keeps CAS pairs on the ground while a detected enemy jet is
+  in the response zone (`cas_held` in the events log); a priority target such as a transport does not count. They launch
+  once the jets are gone.
+- **`rules.break_off_beyond_km`** sends an alert pair home when its target goes further than this from the target and
+  every defend zone, or Red loses sight of it (`break_off`). A returning pair is retasked if a new threat comes in.
+  Unset, pairs chase a target Red still detects however far it goes.
+- **`rules.best_air_to_air_loadout`** (on by default) has intercept and sweep pairs fly their type's longest-reaching
+  air-to-air loadout (R-77s on a MiG-29S, R-27ERs on an Su-27), whatever loadout the plan named; the card lists them
+  best first. A loadout DCS refused at that airbase is skipped. The `scramble` event says which loadout flew.
+- **`rules.intercept_altitude_ft`** climbs scrambled intercept pairs to this altitude, so their missiles reach further.
 - Red loses when every commanded ground group is gone. It wins by holding the target as in the offensive campaign.
 - **`missiles`** hands the mission's ballistic missile groups to Claude. With `wait_for_mission_strike`, the mission fires
   first (in the Sinai mission, its triggers fire on Ovda); a group becomes Claude's once it has not launched for

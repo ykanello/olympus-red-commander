@@ -48,7 +48,7 @@ How your plan is used:
 - Convoys: each is one DCS group of up to max_group_units vehicles, types may be mixed. A convoy spawns at the staging area, sets off depart_min minutes after the start and drives its route, keeping to roads where it can. Where the route ends is where it stops. A convoy with an empty route waits at the staging area for your orders: a reserve.
 - Give convoys their own short-range air defence (classes sam_short and aaa) so they are not defenceless from the air. Fixed SAM batteries cannot move and are not offered.
 - Artillery batteries drive to their firing position, then fire on detected enemy ground units within range, never on a target close to Red ground units. Place them so their range reaches where your convoys will fight.
-- All aircraft fly from the HQ airbase. sweep: launches at the start and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near Red ground forces or the target. cas: waits on alert and is scrambled in pairs against detected enemy ground units and helicopters near Red ground forces or the target. Loadouts only from the lists on the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas.
+- All aircraft fly from the HQ airbase. sweep: launches at the start and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near Red ground forces or the target. cas: waits on alert and is scrambled in pairs against detected enemy ground units and helicopters near Red ground forces or the target. Loadouts only from the lists on the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. air_to_air_loadouts are listed longest-reaching first; take the first.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 - Points you do not spend stay available. At later reviews you can buy reinforcements, which spawn at the staging area or the HQ.
 
@@ -69,12 +69,12 @@ Your forces:
 - Ground: only the groups in red_ground_groups, which are already in the mission. No ground units can be bought or spawned, so a group lost is gone for good. A group keeps doing what the mission gave it (status "mission orders": its own route, or standing where it is) until you order it. Orders: move (with a route; it drives the route, keeping to roads where it can, and stops at the last point), hold (stop where it is) or return (drive back to where it started).
 - Artillery groups fire on detected enemy ground units within range, never on a target close to Red ground units. Move them so their range covers where your ground forces will fight.
 - Everything else Red has (air defence, radars, missile launchers, ships) is run by the mission. You do not command it.
-- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. cas is the only way your aircraft attack ground units and helicopters, so while the airbases hold ground-attack aircraft keep a cas pair on alert to support your ground forces. Pairs on alert launch only as the threat needs (rules: intercept_pairs_per_enemy_aircraft; cas, one pair per enemy group), so add alert taskings only when situation.on_alert runs low: every airframe you task is spent from its warehouse. Keep airframes back for later; the enemy will come more than once.
+- Aircraft: only the airframes each airbase's warehouse holds (airbases[].airframes; at reviews, situation.airframes_left). Each air tasking names its airbase and spends that many airframes from it for good. sweep: launches at once and flies its route weapons free. intercept: waits on alert and is scrambled in pairs against detected enemy aircraft near the target, a defend zone or your ground groups. cas: the same against detected enemy ground units and helicopters. Loadouts only from the card: air_to_air_loadouts for sweep and intercept, ground_attack_loadouts for cas. air_to_air_loadouts are listed longest-reaching first; take the first. cas is the only way your aircraft attack ground units and helicopters, so while the airbases hold ground-attack aircraft keep a cas pair on alert to support your ground forces. Pairs on alert launch only as the threat needs (rules: intercept_pairs_per_enemy_aircraft; cas, one pair per enemy group), so add alert taskings only when situation.on_alert runs low: every airframe you task is spent from its warehouse. Keep airframes back for later; the enemy will come more than once.
 - Red only knows what its own units detect. Early-warning radars see aircraft, not vehicles; ground units see a few km around them. Do not assume enemy positions you have not been told.
 
 Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.
 
-Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone. spawn_failed means DCS would not create an air tasking's aircraft: nothing was lost, the airframes are back in airframes_left, and that airbase, type and loadout (situation.spawn_failures) cannot be tasked again; use another loadout or airbase.
+Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone. aircraft_lost means one aircraft of your group went down (left says how many still fly); enemy_aircraft_down means a detected enemy aircraft was shot down. break_off means an alert pair lost its target or it left the area you defend, and the pair is flying home (it is retasked if a new threat comes in). cas_held means your cas pairs stay on the ground because enemy jets are near; they launch once the jets are gone, so add intercept pairs if you want the sky cleared first. spawn_failed means DCS would not create an air tasking's aircraft: nothing was lost, the airframes are back in airframes_left, and that airbase, type and loadout (situation.spawn_failures) cannot be tasked again; use another loadout or airbase.
 
 You are asked for the opening orders, then for a review every replan_minutes and after big events (a group lost or arriving, a defend zone threatened, the hold starting or breaking). Each time return the same structure: summary is your assessment in two or three sentences, orders are for your ground groups, air adds air taskings from the airframes left. Return empty lists when nothing should change. Keep every reason to one line."""
 
@@ -467,6 +467,9 @@ class CampaignPlanner(Planner):
             "scramble_pair_size": scenario.rules.scramble_pair_size, "sweep_altitude_ft": scenario.rules.sweep_altitude_ft,
             "intercept_pairs_per_enemy_aircraft": round(1 / scenario.rules.enemy_aircraft_per_pair, 2),
             **({"max_airborne_pairs_per_role": scenario.rules.max_airborne_pairs} if scenario.rules.max_airborne_pairs else {}),
+            "cas_waits_while_enemy_jets_near": scenario.rules.cas_waits_for_enemy_fighters,
+            **({"intercept_altitude_ft": scenario.rules.intercept_altitude_ft} if scenario.rules.intercept_altitude_ft else {}),
+            **({"alert_pairs_break_off_beyond_km": scenario.rules.break_off_beyond_km} if scenario.rules.break_off_beyond_km else {}),
         }
         if camp.spawn_ground:
             brief["budget_points"] = scenario.budget_points
@@ -736,6 +739,12 @@ class CampaignCommander(Commander):
         reach = self.camp.protect_radius_km * 1000
         return any(geo.distance_m(l.lat, l.lng, threat.lat, threat.lng) <= reach for l in self._ground_leaders(units))
 
+    def _within_leash(self, threat: Unit) -> bool:
+        if super()._within_leash(threat):
+            return True
+        leash = self.scenario.rules.break_off_beyond_km * 1000
+        return any(geo.distance_m(z.lat, z.lng, threat.lat, threat.lng) <= leash for z in self.camp.defend)
+
     def tick(self, units: dict[int, Unit] | None = None) -> None:
         units = self.client.get_units() if units is None else units
         if self.awaiting or any(map(is_pattern, self.camp.command_groups)):
@@ -947,7 +956,7 @@ class CampaignCommander(Commander):
             if g.role in GROUND_ROLES:
                 ground.append({**entry, "status": g.status})
             else:
-                air.append({**entry, "target_id": g.target_id})
+                air.append({**entry, "target_id": g.target_id, **({"status": g.status} if g.status else {})})
         leaders = {g.label: self._leader(units, g.name) for g in self.groups.values() if g.role in GROUND_ROLES}
         enemies = []
         for t in {**self.detected_enemy_air(units), **self.detected_enemy_ground(units)}.values():

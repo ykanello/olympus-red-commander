@@ -2,7 +2,9 @@
 
 The loop is deterministic and makes no Claude calls:
 - SAM sites kept dark (alarm state green) go active when a detected enemy aircraft comes close.
-- A detected enemy aircraft inside the scramble distance gets an alert pair launched against it.
+- A detected enemy aircraft inside the scramble distance gets an alert pair launched against it. Alert pairs break off
+  and fly home when their target leaves the leash (rules.break_off_beyond_km) or is no longer detected.
+- Close air support waits on the ground while detected enemy jets are about (rules.cas_waits_for_enemy_fighters).
 - A detected enemy ground group near the objective draws the nearest free ground reserve, which drives to it.
 - Artillery fires on detected enemy ground units within its range, unless Red ground units are close to them.
 Red only acts on enemy units that at least one Red unit currently detects.
@@ -55,7 +57,8 @@ class SpawnedGroup:
     label: str = ""  # the name Claude gave the group in its plan
     route: list = field(default_factory=list)  # campaign: [lat, lng] points it drives along
     depart_at: float = 0.0  # campaign: wall-clock time it sets off
-    status: str = ""  # campaign: waiting | moving | arrived
+    status: str = ""  # campaign: waiting | moving | arrived; aircraft: returning
+    size: int = 0  # aircraft: how many are still flying, to log each one lost
 
 
 @dataclass
@@ -90,6 +93,8 @@ class Commander:
     spawn_timeout_s: float = 20.0  # how long a spawn's units get to show up in Olympus before it counts as refused
     spawn_failures: set = field(default_factory=set)  # (airbase, type, loadout) DCS refused to spawn
     no_ramp: set = field(default_factory=set)  # (airbase, type) DCS would not put on the ramp: these spawn in the air
+    enemy_air_seen: dict = field(default_factory=dict)  # detected enemy aircraft id -> (type, group), to log the ones shot down
+    cas_held: bool = False  # cas launches are on hold because enemy jets are about
 
     # ---------- helpers ----------
     def _event(self, kind: str, **data) -> None:
@@ -247,6 +252,13 @@ class Commander:
     def _return_airframes(self, airbase: str, tasking_type: str, count: int) -> None:
         """Airframes that never left the ground go back to the airbase. The campaign commander keeps the count."""
 
+    def _a2a_loadout(self, tasking_type: str, airbase: str, planned: str) -> str:
+        """The air-to-air loadout to fly: with rules.best_air_to_air_loadout, the longest-reaching one DCS has not refused here."""
+        item = self.catalog.items.get(tasking_type)
+        if not self.scenario.rules.best_air_to_air_loadout or item is None:
+            return planned
+        return next((l for l in item.a2a_loadouts if (airbase, tasking_type, l) not in self.spawn_failures), planned)
+
     def _spawn_failed(self, tasking_type: str, airbase: str, loadout: str, count: int, role: str) -> None:
         self.spawn_failures.add((airbase, tasking_type, loadout))
         self._return_airframes(airbase, tasking_type, count)
@@ -308,9 +320,10 @@ class Commander:
     def _launch_sweep(self, f: FighterTasking) -> None:
         route = f.route_points(self.scenario)
         heading = geo.bearing_deg(*self.red_airbases[f.airbase], *route[0])
-        group_name, leader = self._launch(f"SWEEP-{f.airbase}-{len(self.groups)}", f.type, f.loadout, f.airbase, f.count, heading)
+        loadout = self._a2a_loadout(f.type, f.airbase, f.loadout)
+        group_name, leader = self._launch(f"SWEEP-{f.airbase}-{len(self.groups)}", f.type, loadout, f.airbase, f.count, heading)
         if leader is None:
-            self._spawn_failed(f.type, f.airbase, f.loadout, f.count, "sweep")
+            self._spawn_failed(f.type, f.airbase, loadout, f.count, "sweep")
             return
         self.groups[group_name] = SpawnedGroup(group_name, f.type, "fighter", *self.red_airbases[f.airbase], role="sweep")
         self.client.set_roe(leader.id, "free")
@@ -349,6 +362,7 @@ class Commander:
         units = self.client.get_units() if units is None else units
         air = self.detected_enemy_air(units)
         ground = self.detected_enemy_ground(units)
+        self._count_enemy_air_losses(units, air)
         self._emission_control(units, air)
         self._air_response(units, "intercept", air)
         self._direct_reserves(units, ground)
@@ -370,18 +384,49 @@ class Commander:
                 g.dark = False
                 self._event("sam_active", group=g.name, trigger=close[0].id)
 
+    def _count_enemy_air_losses(self, units: dict[int, Unit], air: dict[int, Unit]) -> None:
+        """Log each detected enemy aircraft that goes down (DCS does not say who shot it)."""
+        for uid, u in air.items():
+            self.enemy_air_seen[uid] = (u.name, u.group_name)
+        for uid, (kind, group) in list(self.enemy_air_seen.items()):
+            u = units.get(uid)
+            if u is not None and not u.alive:
+                self._event("enemy_aircraft_down", type=kind, group=group, side="enemy")
+                del self.enemy_air_seen[uid]
+
     def _in_response_zone(self, threat: Unit, units: dict[int, Unit]) -> bool:
         """Whether a detected threat is close enough to launch alert aircraft against it."""
         o = self.scenario.objective
         return geo.distance_m(o.lat, o.lng, threat.lat, threat.lng) <= self.scenario.rules.scramble_when_contact_within_km * 1000
 
+    def _within_leash(self, threat: Unit) -> bool:
+        """Whether alert aircraft may chase a threat this far from the places Red defends."""
+        leash = self.scenario.rules.break_off_beyond_km
+        o = self.scenario.objective
+        return leash is None or geo.distance_m(o.lat, o.lng, threat.lat, threat.lng) <= leash * 1000
+
     def _priority(self, threat: Unit) -> bool:
         return threat.name in self.scenario.rules.priority_air_targets
 
+    def _enemy_jets_about(self, units: dict[int, Unit]) -> list[Unit]:
+        """Detected enemy jets in the response zone that would shoot down close air support (transports do not count)."""
+        return [t for t in self.detected_enemy_air(units).values()
+                if t.category == "Aircraft" and not self._priority(t) and self._in_response_zone(t, units)]
+
+    def _count_losses(self, units: dict[int, Unit], g: SpawnedGroup) -> None:
+        flying = sum(1 for u in units.values() if u.alive and u.group_name == g.name)
+        if 0 < flying < g.size:
+            self._event("aircraft_lost", group=g.name, side=f"{self.scenario.coalition} (yours)", role=g.role, type=g.type,
+                        left=flying)
+        if flying:
+            g.size = flying
+
     def _air_response(self, units: dict[int, Unit], role: str, threats: dict[int, Unit]) -> None:
         """Alert aircraft of one role: drop dead groups, retarget those whose target is gone, scramble against the rest."""
+        threats = {i: t for i, t in threats.items() if self._within_leash(t)}
         assigned: set[int] = set()
         for g in [g for g in self.groups.values() if g.role == role]:
+            self._count_losses(units, g)
             leader = self._live_leader(units, g)
             if leader is None:
                 continue
@@ -392,9 +437,14 @@ class Commander:
             if free:
                 target = min(free, key=lambda t: (not self._priority(t), geo.distance_m(leader.lat, leader.lng, t.lat, t.lng)))
                 self.client.attack_unit(leader.id, target.id)
-                g.target_id = target.id
+                g.target_id, g.status = target.id, ""
                 assigned.add(target.id)
                 self._event("retask", group=g.name, target=target.id)
+            elif g.status != "returning":
+                # Target gone, out of sight or past the leash: home to the airbase rather than chase it into the enemy's cover.
+                self.client.set_path(leader.id, [(g.lat, g.lng)])
+                self._event("break_off", group=g.name, role=g.role, target=g.target_id)
+                g.target_id, g.status = None, "returning"
 
         # Match the threat: intercept pairs by the number of enemy aircraft, cas pairs by the number of enemy groups.
         rules, o = self.scenario.rules, self.scenario.objective
@@ -406,6 +456,13 @@ class Commander:
         if rules.max_airborne_pairs is not None:
             wanted = min(wanted, rules.max_airborne_pairs)
         airborne = sum(1 for g in self.groups.values() if g.role == role)
+        if role == "cas" and rules.cas_waits_for_enemy_fighters:
+            jets = self._enemy_jets_about(units) if in_zone else []
+            if jets and not self.cas_held:
+                self._event("cas_held", enemy_jets=len(jets), reason="enemy jets near the fight; close air support stays on the ground")
+            self.cas_held = bool(jets)
+            if jets:
+                return
         for t in sorted(in_zone, key=lambda t: (not self._priority(t), geo.distance_m(o.lat, o.lng, t.lat, t.lng))):
             if t.id in assigned or (airborne >= wanted and not self._priority(t)):
                 continue  # a priority target (a transport) gets a pair even past the limit
@@ -497,19 +554,23 @@ class Commander:
         self.scramble_counter += 1
         heading = geo.bearing_deg(*self.red_airbases[slot.airbase], target.lat, target.lng)
         prefix = "CAS" if slot.role == "cas" else "INT"
-        group_name, leader = self._launch(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, slot.loadout, slot.airbase,
+        loadout = slot.loadout if slot.role == "cas" else self._a2a_loadout(slot.type, slot.airbase, slot.loadout)
+        group_name, leader = self._launch(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, loadout, slot.airbase,
                                           count, heading)
         if leader is None:
             # Nothing flew: the whole slot stands down (the next pair would fail the same way) and its airframes go back.
-            self._spawn_failed(slot.type, slot.airbase, slot.loadout, slot.remaining + count, slot.role)
+            self._spawn_failed(slot.type, slot.airbase, loadout, slot.remaining + count, slot.role)
             slot.remaining = 0
             return
         cls = self.catalog[slot.type].cls if slot.type in self.catalog else "fighter"
-        self.groups[group_name] = SpawnedGroup(group_name, slot.type, cls, *self.red_airbases[slot.airbase], role=slot.role, target_id=target.id)
+        self.groups[group_name] = SpawnedGroup(group_name, slot.type, cls, *self.red_airbases[slot.airbase], role=slot.role,
+                                               target_id=target.id, size=count)
         self.client.set_roe(leader.id, "free")
+        if slot.role == "intercept" and self.scenario.rules.intercept_altitude_ft:
+            self.client.set_altitude(leader.id, self.scenario.rules.intercept_altitude_ft * FT)
         self.client.attack_unit(leader.id, target.id)
         self._event("scramble", group=group_name, role=slot.role, type=slot.type, count=count, airbase=slot.airbase, target=target.id,
-                    left_on_alert=slot.remaining)
+                    loadout=loadout, left_on_alert=slot.remaining)
 
     def check_session(self) -> None:
         current = self.client.session_hash()

@@ -150,6 +150,10 @@ Before the first run, set `warehouses.mission_file` to the .miz you run (on the 
 - **`rules.break_off_beyond_km`** sends an alert pair home when its target goes further than this from the target and
   every defend zone, or Red loses sight of it (`break_off`). A returning pair is retasked if a new threat comes in.
   Unset, pairs chase a target Red still detects however far it goes.
+- **`rules.best_air_to_air_loadout`** (on by default) has intercept and sweep pairs fly their type's longest-reaching
+  air-to-air loadout (R-77s on a MiG-29S, R-27ERs on an Su-27), whatever loadout the plan named; the card lists them
+  best first. A loadout DCS refused at that airbase is skipped. The `scramble` event says which loadout flew.
+- **`rules.intercept_altitude_ft`** climbs scrambled intercept pairs to this altitude, so their missiles reach further.
 - Red loses when every commanded ground group is gone. It wins by holding the target as in the offensive campaign.
 - **`missiles`** hands the mission's ballistic missile groups to Claude. With `wait_for_mission_strike`, the mission fires
   first (in the Sinai mission, its triggers fire on Ovda); a group becomes Claude's once it has not launched for

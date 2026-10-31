@@ -391,6 +391,7 @@ def test_alert_pairs_go_after_the_transport_first(scenario, catalog, olympus):
 
 def test_a_spawn_dcs_refuses_is_not_a_loss(scenario, catalog, olympus, tmp_path):
     fake, client = olympus
+    scenario.rules.best_air_to_air_loadout = False  # fly the planned loadout, so the failure is recorded against it
     reports = []
     cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T", event_log=tmp_path / "e.jsonl",
                             replanner=lambda r: reports.append(r) or CampaignPlan.from_json(
@@ -573,3 +574,21 @@ def test_alert_pairs_break_off_past_the_leash_and_log_each_loss(scenario, catalo
     cmd.tick()
     down = [e for e in cmd.recent_events if e["event"] == "enemy_aircraft_down"]
     assert len(down) == 1 and down[0]["type"] == "F-16C_50"
+
+
+def test_intercept_pairs_fly_the_longest_reaching_missiles_and_climb(scenario, catalog, olympus):
+    fake, client = olympus
+    assert catalog["MiG-29S"].a2a_loadouts[0].startswith("R-77*4")  # best first on the card too
+    assert scenario.rules.intercept_altitude_ft == 22000
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.execute(CampaignPlan.from_json({"summary": "MiGs on alert.", "orders": [], "air": [
+        {"type": "MiG-29S", "count": 2, "role": "intercept", "airbase": "Wadi Abu Rish", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": ""}]}, "Abu Rudeis"))
+    near = geo.project(*ST_CATHERINE, 0, 30000)
+    viper = fake.add(category="Aircraft", coalition=2, name="F-16C_50", group_name="Viper", lat=near[0], lng=near[1], alt=6000)
+    next(u for u in fake.units.values() if u.group_name == "Infantry-1").contacts = [viper.id]
+    fake.commands.clear()
+    cmd.tick()
+    spawned = [b for n, b in fake.commands if n == "spawnAircrafts"]
+    assert len(spawned) == 1 and spawned[0]["units"][0]["loadout"] == catalog["MiG-29S"].a2a_loadouts[0]
+    assert [round(b["altitude"]) for n, b in fake.commands if n == "setAltitude"] == [round(22000 * 0.3048)]

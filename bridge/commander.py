@@ -252,6 +252,13 @@ class Commander:
     def _return_airframes(self, airbase: str, tasking_type: str, count: int) -> None:
         """Airframes that never left the ground go back to the airbase. The campaign commander keeps the count."""
 
+    def _a2a_loadout(self, tasking_type: str, airbase: str, planned: str) -> str:
+        """The air-to-air loadout to fly: with rules.best_air_to_air_loadout, the longest-reaching one DCS has not refused here."""
+        item = self.catalog.items.get(tasking_type)
+        if not self.scenario.rules.best_air_to_air_loadout or item is None:
+            return planned
+        return next((l for l in item.a2a_loadouts if (airbase, tasking_type, l) not in self.spawn_failures), planned)
+
     def _spawn_failed(self, tasking_type: str, airbase: str, loadout: str, count: int, role: str) -> None:
         self.spawn_failures.add((airbase, tasking_type, loadout))
         self._return_airframes(airbase, tasking_type, count)
@@ -313,9 +320,10 @@ class Commander:
     def _launch_sweep(self, f: FighterTasking) -> None:
         route = f.route_points(self.scenario)
         heading = geo.bearing_deg(*self.red_airbases[f.airbase], *route[0])
-        group_name, leader = self._launch(f"SWEEP-{f.airbase}-{len(self.groups)}", f.type, f.loadout, f.airbase, f.count, heading)
+        loadout = self._a2a_loadout(f.type, f.airbase, f.loadout)
+        group_name, leader = self._launch(f"SWEEP-{f.airbase}-{len(self.groups)}", f.type, loadout, f.airbase, f.count, heading)
         if leader is None:
-            self._spawn_failed(f.type, f.airbase, f.loadout, f.count, "sweep")
+            self._spawn_failed(f.type, f.airbase, loadout, f.count, "sweep")
             return
         self.groups[group_name] = SpawnedGroup(group_name, f.type, "fighter", *self.red_airbases[f.airbase], role="sweep")
         self.client.set_roe(leader.id, "free")
@@ -546,20 +554,23 @@ class Commander:
         self.scramble_counter += 1
         heading = geo.bearing_deg(*self.red_airbases[slot.airbase], target.lat, target.lng)
         prefix = "CAS" if slot.role == "cas" else "INT"
-        group_name, leader = self._launch(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, slot.loadout, slot.airbase,
+        loadout = slot.loadout if slot.role == "cas" else self._a2a_loadout(slot.type, slot.airbase, slot.loadout)
+        group_name, leader = self._launch(f"{prefix}{self.scramble_counter}-{slot.airbase}", slot.type, loadout, slot.airbase,
                                           count, heading)
         if leader is None:
             # Nothing flew: the whole slot stands down (the next pair would fail the same way) and its airframes go back.
-            self._spawn_failed(slot.type, slot.airbase, slot.loadout, slot.remaining + count, slot.role)
+            self._spawn_failed(slot.type, slot.airbase, loadout, slot.remaining + count, slot.role)
             slot.remaining = 0
             return
         cls = self.catalog[slot.type].cls if slot.type in self.catalog else "fighter"
         self.groups[group_name] = SpawnedGroup(group_name, slot.type, cls, *self.red_airbases[slot.airbase], role=slot.role,
                                                target_id=target.id, size=count)
         self.client.set_roe(leader.id, "free")
+        if slot.role == "intercept" and self.scenario.rules.intercept_altitude_ft:
+            self.client.set_altitude(leader.id, self.scenario.rules.intercept_altitude_ft * FT)
         self.client.attack_unit(leader.id, target.id)
         self._event("scramble", group=group_name, role=slot.role, type=slot.type, count=count, airbase=slot.airbase, target=target.id,
-                    left_on_alert=slot.remaining)
+                    loadout=loadout, left_on_alert=slot.remaining)
 
     def check_session(self) -> None:
         current = self.client.session_hash()

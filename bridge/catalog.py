@@ -34,6 +34,36 @@ GROUND_CLASSES = AIR_DEFENCE_CLASSES | MANOEUVRE_CLASSES | ARTILLERY_CLASSES | {
 MLRS_MIN_RANGE_M = 30_000
 GROUND_ATTACK_ROLES = ("CAS", "Strike")
 
+# Rough reach of air-to-air missiles in km, only to rank loadouts: longest reach first, then how many of that missile.
+MISSILE_REACH_KM = {
+    "AIM-120C": 90, "AIM-120B": 75, "R-77": 80, "PL-12": 80, "SD-10": 80, "R-27ER": 65, "R-27ET": 55, "AIM-54": 100,
+    "R-33": 120, "R-40R": 50, "R-40RD": 50, "AIM-7": 50, "Super 530D": 45, "R-27R": 40, "R-24R": 35, "R-27T": 30, "R-40T": 30, "R-40TD": 30,
+    "R-24T": 20, "AIM-9": 15, "R-73": 15, "PL-8": 15, "Magic": 12, "PL-5": 10, "R-3R": 10, "R-60": 8, "R-60M": 8, "R-3S": 7,
+    "R-13M": 7, "R-13M1": 7, "R-55": 6,
+}
+MISSILE_RE = re.compile(r"\b(AIM-\d+[A-Z]?|R-\d+[A-Z]*\d?|PL-\d+|SD-10|Super 530D|Magic)")
+
+
+def missile_reach_km(item_name: str) -> float:
+    m = MISSILE_RE.search(item_name)
+    if not m:
+        return 0.0
+    name = m.group(1)
+    return MISSILE_REACH_KM.get(name) or MISSILE_REACH_KM.get(re.sub(r"[A-Z]+$", "", name), 0.0)
+
+
+def rack_size(item_name: str) -> int:
+    """Missiles per pylon: "SD-10A AAM x 2" and "APU-60-2M with 2 x R-60" carry two."""
+    m = re.search(r"\bx\s*(\d+)\b|\b(\d+)\s*x\s", item_name)
+    return int(m.group(1) or m.group(2)) if m else 1
+
+
+def a2a_rank(loadout: dict) -> tuple:
+    """Sort key for an air-to-air loadout: the longest-reaching missile, how many of it, then everything it carries."""
+    missiles = [(missile_reach_km(i["name"]), i.get("quantity", 1) * rack_size(i["name"])) for i in loadout.get("items", [])]
+    best = max((r for r, _ in missiles), default=0.0)
+    return (best, sum(q for r, q in missiles if r == best), sum(r * q for r, q in missiles))
+
 
 @dataclass
 class CatalogItem:
@@ -186,7 +216,8 @@ class Catalog:
 
         for name, entry in aircraft.items():
             armed = [l for l in entry.get("loadouts", []) if l.get("items")]
-            loadouts = [l["name"] for l in armed if "CAP" in l.get("roles", [])]
+            # Best first: Claude sees only the first few, and alert pairs fly the first one.
+            loadouts = [l["name"] for l in sorted((l for l in armed if "CAP" in l.get("roles", [])), key=a2a_rank, reverse=True)]
             attack = [l["name"] for l in armed if set(GROUND_ATTACK_ROLES) & set(l.get("roles", []))]
             klass = "fighter" if loadouts else "attack" if attack else None
             if klass is None or not wanted(name, entry, klass):

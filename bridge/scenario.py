@@ -80,6 +80,8 @@ class Rules:
     max_airborne_pairs: int | None = None  # never more alert pairs of one role (intercept, cas) in the air than this
     cas_waits_for_enemy_fighters: bool = True  # no cas pair launches while a detected enemy jet (not a priority target) is in the response zone
     break_off_beyond_km: float | None = None  # alert pairs drop a target this far from the objective (and defend zones) and fly home
+    best_air_to_air_loadout: bool = True  # intercept and sweep pairs fly the longest-reaching air-to-air loadout of their type
+    intercept_altitude_ft: float | None = None  # scrambled intercept pairs climb to this; unset: DCS picks
     fighter_spawn: str = "ramp"  # "ramp" (hot start at the airbase) or "air" (airborne above it)
     air_spawn_altitude_ft: float = 10000
     sweep_altitude_ft: float = 25000

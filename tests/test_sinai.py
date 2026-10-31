@@ -504,3 +504,72 @@ def test_alert_pairs_match_the_size_of_the_threat(scenario, catalog, olympus):
     cmd.tick()
     assert [b["targetID"] for n, b in fake.commands if n == "attackUnit"][-1:] == [c130.id]
     assert sum(1 for n, _ in fake.commands if n == "spawnAircrafts") == 1
+
+
+def test_cas_stays_on_the_ground_while_enemy_jets_are_near(scenario, catalog, olympus):
+    fake, client = olympus
+    assert scenario.rules.cas_waits_for_enemy_fighters
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.execute(CampaignPlan.from_json({"summary": "Su-25s on call.", "orders": [], "air": [
+        {"type": "Su-25T", "count": 2, "role": "cas", "airbase": "Abu Rudeis", "loadout": "RBK-500AO*4,UB-32*2,R-60M*2,Fuel*2",
+         "sweep_route": [], "reason": "On call"}]}, "Abu Rudeis"))
+    near = geo.project(*ST_CATHERINE, 270, 6000)
+    apache = fake.add(category="Helicopter", coalition=2, name="AH-64D_BLK_II", group_name="Apache", lat=near[0], lng=near[1], alt=60)
+    viper = fake.add(category="Aircraft", coalition=2, name="F-16C_50", group_name="Viper", lat=near[0], lng=near[1], alt=6000)
+    scout = next(u for u in fake.units.values() if u.group_name == "Ground-3")
+    scout.contacts = [apache.id, viper.id]
+    fake.commands.clear()
+    cmd.tick()
+    assert "spawnAircrafts" not in fake.names_sent()
+    assert [e["event"] for e in cmd.recent_events].count("cas_held") == 1
+    cmd.tick()
+    assert [e["event"] for e in cmd.recent_events].count("cas_held") == 1  # said once, not every tick
+    # A transport is no threat to the Su-25s.
+    viper.name, viper.group_name = "C-130J-30", "Trash"
+    cmd.tick()
+    assert [b["units"][0]["unitType"] for n, b in fake.commands if n == "spawnAircrafts"] == ["Su-25T"]
+
+
+def test_alert_pairs_break_off_past_the_leash_and_log_each_loss(scenario, catalog, olympus):
+    fake, client = olympus
+    assert scenario.rules.break_off_beyond_km == 80
+    cmd = CampaignCommander(client, scenario, catalog, BASES, run_id="T")
+    cmd.execute(CampaignPlan.from_json({"summary": "MiGs on alert.", "orders": [], "air": [
+        {"type": "MiG-29S", "count": 4, "role": "intercept", "airbase": "Wadi Abu Rish", "loadout": "R-73*2,R-60M*2,R-27R*2",
+         "sweep_route": [], "reason": ""}]}, "Abu Rudeis"))
+    scout = next(u for u in fake.units.values() if u.group_name == "Infantry-1")
+    near = geo.project(*ST_CATHERINE, 0, 30000)
+    viper = fake.add(category="Aircraft", coalition=2, name="F-16C_50", group_name="Viper", lat=near[0], lng=near[1], alt=6000)
+    scout.contacts = [viper.id]
+    cmd.tick()
+    pair = next(g for g in cmd.groups.values() if g.role == "intercept")
+    assert pair.target_id == viper.id and pair.size == 2
+
+    # The F-16 runs north, far from St Catherine and Abu Rudeis: the pair goes home instead of chasing it.
+    viper.lat, viper.lng = geo.project(*ST_CATHERINE, 0, 150000)
+    fake.commands.clear()
+    cmd.tick()
+    assert pair.target_id is None and pair.status == "returning"
+    home = [b["path"] for n, b in fake.commands if n == "setPath"]
+    assert len(home) == 1 and (home[0][0]["lat"], home[0][0]["lng"]) == BASES["Wadi Abu Rish"]
+    assert "break_off" in [e["event"] for e in cmd.recent_events]
+    cmd.tick()
+    assert [e["event"] for e in cmd.recent_events].count("break_off") == 1
+
+    # It comes back: the returning pair takes it on again, and nothing new launches.
+    viper.lat, viper.lng = near
+    fake.commands.clear()
+    cmd.tick()
+    assert pair.target_id == viper.id and pair.status == ""
+    assert "spawnAircrafts" not in fake.names_sent()
+
+    # One MiG goes down, then the F-16.
+    wingman = next(u for u in fake.units.values() if u.group_name == pair.name and not u.is_leader)
+    wingman.alive = False
+    cmd.tick()
+    lost = [e for e in cmd.recent_events if e["event"] == "aircraft_lost"]
+    assert len(lost) == 1 and lost[0]["left"] == 1 and lost[0]["type"] == "MiG-29S"
+    viper.alive = False
+    cmd.tick()
+    down = [e for e in cmd.recent_events if e["event"] == "enemy_aircraft_down"]
+    assert len(down) == 1 and down[0]["type"] == "F-16C_50"

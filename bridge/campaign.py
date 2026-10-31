@@ -74,7 +74,7 @@ Your forces:
 
 Every position is a bearing and distance from the target centre; the brief gives the defend zones and airbases the same way.
 
-Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone. spawn_failed means DCS would not create an air tasking's aircraft: nothing was lost, the airframes are back in airframes_left, and that airbase, type and loadout (situation.spawn_failures) cannot be tasked again; use another loadout or airbase.
+Events in the situation report are about your own Red groups unless they say otherwise (group_lost means one of your groups was destroyed). Enemy units appear only under detected_enemy. defence_threatened means a detected enemy ground unit is inside a defend zone. aircraft_lost means one aircraft of your group went down (left says how many still fly); enemy_aircraft_down means a detected enemy aircraft was shot down. break_off means an alert pair lost its target or it left the area you defend, and the pair is flying home (it is retasked if a new threat comes in). cas_held means your cas pairs stay on the ground because enemy jets are near; they launch once the jets are gone, so add intercept pairs if you want the sky cleared first. spawn_failed means DCS would not create an air tasking's aircraft: nothing was lost, the airframes are back in airframes_left, and that airbase, type and loadout (situation.spawn_failures) cannot be tasked again; use another loadout or airbase.
 
 You are asked for the opening orders, then for a review every replan_minutes and after big events (a group lost or arriving, a defend zone threatened, the hold starting or breaking). Each time return the same structure: summary is your assessment in two or three sentences, orders are for your ground groups, air adds air taskings from the airframes left. Return empty lists when nothing should change. Keep every reason to one line."""
 
@@ -467,6 +467,8 @@ class CampaignPlanner(Planner):
             "scramble_pair_size": scenario.rules.scramble_pair_size, "sweep_altitude_ft": scenario.rules.sweep_altitude_ft,
             "intercept_pairs_per_enemy_aircraft": round(1 / scenario.rules.enemy_aircraft_per_pair, 2),
             **({"max_airborne_pairs_per_role": scenario.rules.max_airborne_pairs} if scenario.rules.max_airborne_pairs else {}),
+            "cas_waits_while_enemy_jets_near": scenario.rules.cas_waits_for_enemy_fighters,
+            **({"alert_pairs_break_off_beyond_km": scenario.rules.break_off_beyond_km} if scenario.rules.break_off_beyond_km else {}),
         }
         if camp.spawn_ground:
             brief["budget_points"] = scenario.budget_points
@@ -736,6 +738,12 @@ class CampaignCommander(Commander):
         reach = self.camp.protect_radius_km * 1000
         return any(geo.distance_m(l.lat, l.lng, threat.lat, threat.lng) <= reach for l in self._ground_leaders(units))
 
+    def _within_leash(self, threat: Unit) -> bool:
+        if super()._within_leash(threat):
+            return True
+        leash = self.scenario.rules.break_off_beyond_km * 1000
+        return any(geo.distance_m(z.lat, z.lng, threat.lat, threat.lng) <= leash for z in self.camp.defend)
+
     def tick(self, units: dict[int, Unit] | None = None) -> None:
         units = self.client.get_units() if units is None else units
         if self.awaiting or any(map(is_pattern, self.camp.command_groups)):
@@ -947,7 +955,7 @@ class CampaignCommander(Commander):
             if g.role in GROUND_ROLES:
                 ground.append({**entry, "status": g.status})
             else:
-                air.append({**entry, "target_id": g.target_id})
+                air.append({**entry, "target_id": g.target_id, **({"status": g.status} if g.status else {})})
         leaders = {g.label: self._leader(units, g.name) for g in self.groups.values() if g.role in GROUND_ROLES}
         enemies = []
         for t in {**self.detected_enemy_air(units), **self.detected_enemy_ground(units)}.values():

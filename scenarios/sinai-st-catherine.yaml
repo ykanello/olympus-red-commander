@@ -98,6 +98,8 @@ rules:
   scramble_pair_size: 2
   enemy_aircraft_per_pair: 2           # one intercept pair airborne for every 2 Blue aircraft near Red's forces
   max_airborne_pairs: 4                # and never more than 4 intercept or 4 CAS pairs in the air at once
+  cas_waits_for_enemy_fighters: true   # Su-25s stay on the ground while Blue jets are near the fight (a C-130 does not count)
+  break_off_beyond_km: 80              # alert pairs give up a chase 80 km from St Catherine and every defend zone, and fly home
   fighter_spawn: ramp
   artillery_fire: true
   fire_mission_every_s: 90

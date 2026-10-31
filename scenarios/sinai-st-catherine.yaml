@@ -29,9 +29,15 @@ campaign:
     (2 at Abu Rudeis, 12 at Tabuk) as close air support against Blue ground units and helicopters that threaten Abu Rudeis,
     the missile base or Red's forces at St Catherine. Tabuk is far east, about 250 km from St Catherine: its aircraft take
     longer to arrive.
-    The insurgent armour and technicals around St Catherine are the attack force: they are there to take the airport, so
-    send them in, the technicals spread around the armour, and keep the Su-25s on call to support them. The groups at
-    Abu Rudeis and El Tor hold.
+    Red is playing the long game: reinforcements (fourth-generation fighters, more weapons and tanks) arrive tomorrow,
+    and Blue's logistics are thin. Preserve aircraft. Fight Blue's fighters over Abu Rudeis and El Tor, under Red's SAM
+    cover, and do not send fighters forward to St Catherine unless Blue's fighters are gone. Shooting down the C-130 is
+    always worth it.
+    The Apache at St Catherine, resupplied by the C-130, is what stops Red's ground attack. Kill it first: the C-130 in
+    the air, the Apache on the helicopter ramp with missiles, or in the air with Su-25s when Blue's fighters are not
+    around. The insurgent armour and technicals around St Catherine are the attack force: they keep pressing St
+    Catherine to bleed Blue, and go into the airport once the Apache is gone, the technicals spread around the armour.
+    The groups at Abu Rudeis and El Tor hold.
   hold_minutes: 10               # Red takes St Catherine by holding it this long with no Blue ground units inside
   replan_minutes: 10             # Claude reviews this often...
   min_replan_gap_minutes: 2      # ...and after big events (a group lost, a defend zone threatened), never more often than this

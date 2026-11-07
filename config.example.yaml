@@ -4,7 +4,8 @@ olympus:
   # Your DCS *Saved Games* folder (not the game install folder, e.g. not B:/DCS World).
   # The bridge reads Config/olympus.json (address, port, password hash) and
   # Mods/Services/Olympus (unit databases and SAM templates) from here.
-  # Leave it commented out to auto-detect %USERPROFILE%/Saved Games/DCS or DCS.openbeta.
+  # Leave it commented out to auto-detect %USERPROFILE%/Saved Games/DCS or DCS.openbeta, then the dedicated
+  # server's DCS.dcs_serverrelease or DCS.server. With Olympus on a dedicated server, set it to the server's folder.
   # saved_games_dcs: "C:/Users/YOU/Saved Games/DCS"
   # Or point at each one directly:
   # olympus_json: "C:/Users/YOU/Saved Games/DCS/Config/olympus.json"

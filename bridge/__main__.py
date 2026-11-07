@@ -53,7 +53,9 @@ def olympus_paths(cfg: dict) -> tuple[Path, Path]:
 
     candidates = [Path(o["saved_games_dcs"])] if o.get("saved_games_dcs") else []
     home = Path(os.environ.get("USERPROFILE") or Path.home())
-    candidates += [home / "Saved Games" / name for name in ("DCS", "DCS.openbeta", "DCS.release_server")]
+    # The game, then the dedicated server's folders (its Olympus install sits there when Olympus runs on the server).
+    candidates += [home / "Saved Games" / name for name in ("DCS", "DCS.openbeta", "DCS.dcs_serverrelease", "DCS.server",
+                                                            "DCS.openbeta_server", "DCS.release_server")]
     for saved in candidates:
         if (saved / "Config/olympus.json").exists():
             return (Path(o.get("olympus_json") or saved / "Config/olympus.json"),
